@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ITCompliance.API.Controllers
 {
-    //[Authorize(Roles = "Boss")]
+    [Authorize(Roles = RoleNames.Boss)]
     public class BossController : Controller
     {
         private readonly AppDbContext _context;
@@ -56,64 +56,84 @@ namespace ITCompliance.API.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Approve(int id, string? remarks)
         {
-            var request = await _context.InternetAccessRequests
-                .FirstOrDefaultAsync(r => r.Id == id);
-
-            if (request == null)
+            try
             {
-                return NotFound();
-            }
+                var request = await _context.InternetAccessRequests
+                    .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (request.Status != RequestStatus.SecurityHeadApproved)
+                if (request == null)
+                {
+                    TempData["ErrorMessage"] = "The selected request was not found.";
+                    return RedirectToAction(nameof(Dashboard));
+                }
+
+                if (request.Status != RequestStatus.SecurityHeadApproved)
+                {
+                    TempData["ErrorMessage"] =
+                        "This request is not available for Boss approval.";
+                    return RedirectToAction(nameof(Dashboard));
+                }
+
+                request.Status = RequestStatus.BossApproved;
+                request.BossRemarks = string.IsNullOrWhiteSpace(remarks)
+                    ? "Approved by Boss"
+                    : remarks.Trim();
+                request.UpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] =
+                    "Request approved successfully by Boss.";
+                return RedirectToAction(nameof(Dashboard));
+            }
+            catch
             {
                 TempData["ErrorMessage"] =
-                    "This request is not available for Boss approval.";
-                return RedirectToAction("Dashboard");
+                    "Approval failed. Please try again.";
+                return RedirectToAction(nameof(Dashboard));
             }
-
-            request.Status = RequestStatus.BossApproved;
-            request.BossRemarks = string.IsNullOrWhiteSpace(remarks)
-                ? "Approved by Boss"
-                : remarks.Trim();
-            request.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] =
-                "Request approved successfully by Boss.";
-            return RedirectToAction("Dashboard");
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reject(int id, string? remarks)
         {
-            var request = await _context.InternetAccessRequests
-                .FirstOrDefaultAsync(r => r.Id == id);
-
-            if (request == null)
+            try
             {
-                return NotFound();
-            }
+                var request = await _context.InternetAccessRequests
+                    .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (request.Status != RequestStatus.SecurityHeadApproved)
+                if (request == null)
+                {
+                    TempData["ErrorMessage"] = "The selected request was not found.";
+                    return RedirectToAction(nameof(Dashboard));
+                }
+
+                if (request.Status != RequestStatus.SecurityHeadApproved)
+                {
+                    TempData["ErrorMessage"] =
+                        "This request is not available for Boss processing.";
+                    return RedirectToAction(nameof(Dashboard));
+                }
+
+                request.Status = RequestStatus.RejectedByBoss;
+                request.BossRemarks = string.IsNullOrWhiteSpace(remarks)
+                    ? "Rejected by Boss"
+                    : remarks.Trim();
+                request.UpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] =
+                    "Request rejected successfully by Boss.";
+                return RedirectToAction(nameof(Dashboard));
+            }
+            catch
             {
                 TempData["ErrorMessage"] =
-                    "This request is not available for Boss processing.";
-                return RedirectToAction("Dashboard");
+                    "Rejection failed. Please try again.";
+                return RedirectToAction(nameof(Dashboard));
             }
-
-            request.Status = RequestStatus.RejectedByBoss;
-            request.BossRemarks = string.IsNullOrWhiteSpace(remarks)
-                ? "Rejected by Boss"
-                : remarks.Trim();
-            request.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] =
-                "Request rejected successfully by Boss.";
-            return RedirectToAction("Dashboard");
         }
     }
 }

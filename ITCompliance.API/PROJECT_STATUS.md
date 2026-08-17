@@ -195,24 +195,67 @@ Build status: **0 errors, 0 warnings.**
 
 ---
 
+### Roles & Admin module (done - Phase 1 of the roles/email/master-data revamp)
+
+- **App-owned role assignments:** new `RoleAssignments` table
+  (`Models/RoleAssignment.cs`) grants `ITOfficer` / `HOD` /
+  `SecurityHead` / `Boss` / `Admin` to an employee, optionally
+  scoped to one `DepartmentCode` (null = global). Every logged-in
+  user always gets the baseline `Employee` role - see
+  `RoleNames.cs`.
+- **Login resolves real roles:** `AccountController.Login` and
+  `PowerLogin` both call a shared `BuildClaimsForEmployeeAsync`
+  helper that reads active `RoleAssignments` for the employee and
+  emits one `ClaimTypes.Role` claim per role plus one
+  `itc_dept_scope` claim (`"{Role}|{DeptCode}"`) per department-
+  scoped grant. No more hardcoded `"Employee"` claim.
+- **All five `[Authorize(Roles = ...)]` attributes are back on**
+  (`Employee`, `ITOfficer`, `HOD`, `SecurityHead`, `Boss`
+  controllers), plus the new `AdminController`
+  (`[Authorize(Roles = "Admin")]`).
+- **Department-scoped HOD dashboard:** `InternetAccessRequest`
+  gained a `DepartmentCode` column, populated at submit time from
+  the employee's `OESEmployees.DepartmentCode`.
+  `HODController.Dashboard` filters both the request list and the
+  KPI counts by the signed-in HOD's department scope(s)
+  (`ClaimsPrincipalExtensions.GetDepartmentScopes`) - an
+  unscoped/global HOD still sees everything.
+- **Role Management UI:** `/Admin/Roles` (list + revoke) and
+  `/Admin/Roles/Create` (grant) - grant **one role to multiple
+  employees at once** via a multi-select searchable combobox
+  (`/Admin/Roles/Employees` JSON endpoint, Production-safe unlike
+  `/PowerLogin/Employees`). Visible in the sidebar only to `Admin`.
+- **Known limitation:** role/department changes are baked into the
+  auth cookie at login, so they take effect the *next* time the
+  affected person logs in, not live. Acceptable given the existing
+  30-minute sliding session.
+- **Bootstrap admin:** `Bootstrap:AdminEmployeeIds` in
+  `appsettings.json` (currently `["207561"]`) is applied
+  idempotently on every app startup (`Program.cs`) so Role
+  Management is reachable without a manual DB edit. Safe to leave
+  populated permanently - self-heals if the row is ever revoked
+  by accident.
+- **Consistency cleanup:** `ITOfficer`/`HOD`/`SecurityHead`/`Boss`
+  controllers now all use convention routing, `RedirectToAction`,
+  a friendly `TempData` message for a missing/already-processed
+  request, and a try/catch around `Approve`/`Reject`.
+- **Still pending (Phase 2, not started):** email notifications on
+  status change, `DurationOption`/`WebsiteCategory` master data +
+  admin screens, and the corresponding `Request.cshtml` changes.
+  See the approved plan for the full design.
+- **Deploying this to the real DB:** `dotnet ef database update`
+  needs a reachable SQL Server; if that's not available from your
+  machine, run **`ITCompliance.API/AddRolesAndDepartmentScoping.sql`**
+  directly against `ITcomplianceDB` instead - it's the idempotent
+  script EF generates for this migration (safe to run even if some
+  earlier migrations are already applied - it skips anything
+  already recorded in `__EFMigrationsHistory`).
+
 ## 2. SKIPPED / PENDING (priority order)
 
 ### CRITICAL - security
 
-1. **Authorization is disabled everywhere.**
-   All five `[Authorize(Roles = ...)]` attributes are still
-   commented out (`Employee`, `ITOfficer`, `HOD`, `SecurityHead`,
-   `Boss` controllers). Anyone - even without logging in - can
-   open every dashboard and approve/reject requests.
-   **Blocked on: roles DB design (see below).**
-
-2. **Roles DB (you are designing this).**
-   Once the tables exist: resolve the role at login (roles table /
-   `tbl_HODdetails` / AD groups), add it as `ClaimTypes.Role`,
-   then un-comment the `[Authorize]` attributes.
-   Power Login already sets the role claim, so it keeps working.
-
-3. **Connection string - REMOVED from all source code (done).**
+1. **Connection string - REMOVED from all source code (done).**
    `Program.cs` now reads configuration
    (`GetConnectionString("DefaultConnection")` with a clear
    error if missing). Both appsettings files carry no secrets.
@@ -224,42 +267,43 @@ Build status: **0 errors, 0 warnings.**
    password and replace the `sa` login with a dedicated
    least-privilege app login.
 
-4. **LDAP on port 389 (cleartext).**
+2. **LDAP on port 389 (cleartext).**
    `Services/ActiveDirectoryService.cs` - switch to LDAPS 636
    (needs the AD certificate trusted on the app server).
 
 ### HIGH - security
 
-5. **Exception details leaked to users** - every controller catch
+3. **Exception details leaked to users** - every controller catch
    block returns `ex.Message` + inner exception. Replace with a
    global exception handler (`app.UseExceptionHandler` /
    `app.UseStatusCodePages`).
 
-6. **No rate limiting on login** - brute-force avenue against AD.
+4. **No rate limiting on login** - brute-force avenue against AD.
 
-7. **CORS `AllowAnyOrigin()`** in `Program.cs` - scope to the real
+5. **CORS `AllowAnyOrigin()`** in `Program.cs` - scope to the real
    frontend origin or remove (app is same-origin anyway).
 
-8. **No approval audit trail** - no approver identity/timestamp
+6. **No approval audit trail** - no approver identity/timestamp
    recorded. For a compliance system this is required eventually.
+   Partial mitigation possible once Phase 2's `EmailLog` lands
+   (see the approved plan) - full mitigation needs an
+   `ApprovedByEmpId`/`RejectedByEmpId` column, now trivial since
+   claims resolve the approver's `EmpId`.
 
 ### MEDIUM - code quality
 
-9. `AuthController` (`/api/Auth/login`) is the old API login path -
+7. `AuthController` (`/api/Auth/login`) is the old API login path -
    signs in ANY valid AD account with no role and no HR check.
    Decide: delete it, or align it with the MVC login. The
    `wwwroot/js/*` files (login.js etc.) are unreferenced leftovers
    from the static-HTML prototype - deletable.
-10. Status handled as inconsistent magic strings ("Rejected",
-    "Rejected by HOD"...). Introduce a `RequestStatus` enum/constants.
-11. `InternetAccessRequest.DepartmentCode` is `[Required]` but
-    never assigned (always empty).
-12. `DateTime.Now` used everywhere - prefer UTC.
-13. Legacy `Employee` model + `PasswordHash` column (old local-auth
-    design) - drop when roles DB lands.
-14. No version control - initialize git and add a `.gitignore`
-    (bin/obj/.vs) AFTER scrubbing passwords.
-15. No tests.
+8. Status handled as inconsistent magic strings ("Rejected",
+   "Rejected by HOD"...). Introduce a `RequestStatus` enum/constants.
+9. `DateTime.Now` used everywhere - prefer UTC.
+10. Legacy `Employee` model + `PasswordHash` column (old local-auth
+    design) - the roles DB has now landed (see above), so this can
+    be dropped whenever convenient.
+11. No tests.
 
 ---
 

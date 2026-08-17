@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ITCompliance.API.Controllers
 {
-    // [Authorize(Roles = "Employee")]
+    [Authorize(Roles = RoleNames.Employee)]
     public class EmployeeController : Controller
     {
         private readonly AppDbContext _context;
@@ -137,12 +137,24 @@ namespace ITCompliance.API.Controllers
                 return RedirectToAction(nameof(SubmitRequest));
             }
 
+            var employee = await _context.OESEmployees
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.EmpId == employeeId);
+
+            if (employee == null)
+            {
+                await HttpContext.SignOutAsync();
+
+                return RedirectToAction("Login", "Account");
+            }
+
             _context.InternetAccessRequests.Add(
                 new InternetAccessRequest
                 {
                     EmployeeId = employeeId,
                     EmployeeEmail =
                         User.FindFirstValue(ClaimTypes.Email) ?? "",
+                    DepartmentCode = employee.DepartmentCode ?? "",
 
                     DeviceName = deviceName!.Trim(),
                     LanMacId = lanMacId!.Trim(),

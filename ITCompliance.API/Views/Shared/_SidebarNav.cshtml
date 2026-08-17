@@ -1,18 +1,26 @@
 @using ITCompliance.API.Models
+@inject IWebHostEnvironment Env
 
-@* Config-driven nav. Roles are shown until the roles DB lands;
-   then filter navItems by the user's role claim. *@
+@* Config-driven nav, filtered by the user's role claims. Role is
+   null for "visible to any authenticated user". *@
 @{
-    var navItems = new List<(string Label, string Icon, string Url, string Section)>
+    var allNavItems = new List<(string Label, string Icon, string Url, string Section, string? Role)>
     {
-        ("My Dashboard",  "i-dashboard", "/Employee/Dashboard",     ""),
-        ("New Request",   "i-plus",      "/Employee/SubmitRequest", ""),
-        ("IT Officer",    "i-monitor",   "/ITOfficer/Dashboard",    "Approvals"),
-        ("HOD",           "i-list",      "/HOD/Dashboard",          "Approvals"),
-        ("Security Head", "i-shield",    "/SecurityHead/Dashboard", "Approvals"),
-        ("Boss",          "i-award",     "/Boss/Dashboard",         "Approvals"),
-        ("Power Login",   "i-key",       "/PowerLogin",             "Developer")
+        ("My Dashboard",     "i-dashboard", "/Employee/Dashboard",     "",               RoleNames.Employee),
+        ("New Request",      "i-plus",      "/Employee/SubmitRequest", "",               RoleNames.Employee),
+        ("IT Officer",       "i-monitor",   "/ITOfficer/Dashboard",    "Approvals",      RoleNames.ITOfficer),
+        ("HOD",              "i-list",      "/HOD/Dashboard",          "Approvals",      RoleNames.HOD),
+        ("Security Head",    "i-shield",    "/SecurityHead/Dashboard", "Approvals",      RoleNames.SecurityHead),
+        ("Boss",             "i-award",     "/Boss/Dashboard",         "Approvals",      RoleNames.Boss),
+        ("Role Management",  "i-users",     "/Admin/Roles",            "Administration", RoleNames.Admin),
+        ("Power Login",      "i-key",       "/PowerLogin",             "Developer",      null)
     };
+
+    var navItems = allNavItems
+        .Where(item =>
+            (item.Role == null || User.IsInRole(item.Role)) &&
+            (item.Url != "/PowerLogin" || Env.IsDevelopment()))
+        .ToList();
 }
 
 <link rel="stylesheet"

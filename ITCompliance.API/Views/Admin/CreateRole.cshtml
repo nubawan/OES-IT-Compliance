@@ -1,0 +1,316 @@
+@{
+    ViewData["Title"] = "Assign Role";
+    ViewData["PageSubtitle"] = "Grant an employee an elevated role";
+
+    var roles = (string[])ViewBag.Roles;
+    var departments = ViewBag.Departments;
+}
+
+<div class="form-wrap">
+
+    <div class="form-card">
+
+        <div class="section-title">Role Assignment</div>
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-error" style="margin-bottom: 20px;">
+                <span class="alert-icon">!</span>
+                <span>@TempData["ErrorMessage"]</span>
+            </div>
+        }
+
+        <form asp-controller="Admin"
+              asp-action="CreateRole"
+              method="post"
+              id="createRoleForm">
+
+            @Html.AntiForgeryToken()
+
+            <div class="form-group">
+
+                <label for="comboInput">
+                    Employees
+                    <span class="required">*</span>
+                </label>
+
+                <div class="combo" id="employeeCombo">
+
+                    <input type="text"
+                           id="comboInput"
+                           placeholder="Type a name or email to search - pick as many as you need..."
+                           autocomplete="off" />
+
+                    <div class="combo-list" id="comboList"></div>
+
+                </div>
+
+                <div id="selectedChips"
+                     style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+                </div>
+
+                <div id="hiddenInputs"></div>
+
+                <div class="alert alert-error"
+                     id="comboError"
+                     style="display:none; margin-top:10px;">
+                    <span class="alert-icon">!</span>
+                    <span>Select at least one employee from the list.</span>
+                </div>
+
+            </div>
+
+            <div class="form-grid">
+
+                <div class="form-group">
+
+                    <label for="role">
+                        Role
+                        <span class="required">*</span>
+                    </label>
+
+                    <select id="role" name="role" required>
+                        <option value="">-- Select Role --</option>
+                        @foreach (var role in roles)
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    </select>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="departmentCode">
+                        Department scope
+                    </label>
+
+                    <select id="departmentCode" name="departmentCode">
+                        <option value="">All departments (global)</option>
+                        @foreach (var dept in departments)
+                        {
+                            <option value="@dept.DepartmentCode">@dept.DepartmentName</option>
+                        }
+                    </select>
+
+                </div>
+
+            </div>
+
+            <p style="color:var(--muted); font-size:13px; margin-top:4px;">
+                Leave department blank for roles like IT Officer,
+                Security Head or Boss. Set it for a department-scoped
+                HOD so they only see requests from that department.
+            </p>
+
+            <div class="form-actions">
+
+                <a asp-controller="Admin"
+                   asp-action="Roles"
+                   class="btn btn-ghost">
+                    Cancel
+                </a>
+
+                <button type="submit" class="btn btn-primary">
+                    Grant Role
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<script>
+    (function () {
+        var employees = [];
+        var selected = {};
+        var input = document.getElementById("comboInput");
+        var list = document.getElementById("comboList");
+        var error = document.getElementById("comboError");
+        var chips = document.getElementById("selectedChips");
+        var hiddenInputs = document.getElementById("hiddenInputs");
+        var activeIndex = -1;
+        var rows = [];
+
+        fetch("/Admin/Roles/Employees")
+            .then(function (r) {
+                if (!r.ok) throw new Error("db");
+                return r.json();
+            })
+            .then(function (data) {
+                employees = data;
+            })
+            .catch(function () {
+                list.innerHTML =
+                    '<div class="combo-empty">' +
+                    "Could not load employees - database unreachable" +
+                    "</div>";
+                list.classList.add("open");
+            });
+
+        function matches(query) {
+            if (!query) return employees;
+            var q = query.toLowerCase();
+            return employees.filter(function (e) {
+                return e.text.toLowerCase().indexOf(q) !== -1;
+            });
+        }
+
+        function render(items) {
+            list.innerHTML = "";
+            rows = [];
+
+            if (!items.length) {
+                list.innerHTML =
+                    '<div class="combo-empty">No matching employees</div>';
+                activeIndex = -1;
+                return;
+            }
+
+            items.slice(0, 50).forEach(function (e) {
+                var row = document.createElement("div");
+                row.className = "combo-option";
+                row.textContent = (selected[e.value] ? "✓ " : "") + e.text;
+                row.addEventListener("mousedown", function (ev) {
+                    ev.preventDefault();
+                    toggle(e);
+                });
+                list.appendChild(row);
+                rows.push({ row: row, employee: e });
+            });
+
+            if (items.length > 50) {
+                var more = document.createElement("div");
+                more.className = "combo-more";
+                more.textContent =
+                    (items.length - 50) +
+                    " more - keep typing to narrow down";
+                list.appendChild(more);
+            }
+
+            activeIndex = -1;
+        }
+
+        function renderChips() {
+            chips.innerHTML = "";
+            hiddenInputs.innerHTML = "";
+
+            Object.keys(selected).forEach(function (value) {
+                var employee = selected[value];
+
+                var chip = document.createElement("span");
+                chip.className = "meta-chip";
+                chip.style.paddingRight = "6px";
+                chip.textContent = employee.text;
+
+                var remove = document.createElement("button");
+                remove.type = "button";
+                remove.textContent = " ✕";
+                remove.style.border = "none";
+                remove.style.background = "none";
+                remove.style.color = "var(--danger)";
+                remove.style.cursor = "pointer";
+                remove.style.fontWeight = "700";
+                remove.addEventListener("click", function () {
+                    toggle(employee);
+                });
+
+                chip.appendChild(remove);
+                chips.appendChild(chip);
+
+                var hidden = document.createElement("input");
+                hidden.type = "hidden";
+                hidden.name = "employeeIds";
+                hidden.value = value;
+                hiddenInputs.appendChild(hidden);
+            });
+        }
+
+        function toggle(employee) {
+            if (selected[employee.value]) {
+                delete selected[employee.value];
+            } else {
+                selected[employee.value] = employee;
+            }
+            error.style.display = "none";
+            renderChips();
+            render(matches(input.value.trim()));
+        }
+
+        function open() {
+            list.classList.add("open");
+            render(matches(input.value.trim()));
+        }
+
+        function close() {
+            list.classList.remove("open");
+            activeIndex = -1;
+        }
+
+        function highlight() {
+            rows.forEach(function (r) {
+                r.row.classList.remove("active");
+            });
+            if (rows[activeIndex]) {
+                rows[activeIndex].row.classList.add("active");
+                rows[activeIndex].row.scrollIntoView({ block: "nearest" });
+            }
+        }
+
+        input.addEventListener("focus", open);
+        input.addEventListener("click", open);
+
+        input.addEventListener("input", open);
+
+        input.addEventListener("keydown", function (e) {
+            if (!list.classList.contains("open")) {
+                if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                    e.preventDefault();
+                    open();
+                }
+                return;
+            }
+
+            if (e.key === "ArrowDown") {
+                e.preventDefault();
+                if (rows.length) {
+                    activeIndex = (activeIndex + 1) % rows.length;
+                    highlight();
+                }
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                if (rows.length) {
+                    activeIndex = activeIndex <= 0
+                        ? rows.length - 1
+                        : activeIndex - 1;
+                    highlight();
+                }
+            } else if (e.key === "Enter") {
+                if (rows[activeIndex]) {
+                    e.preventDefault();
+                    toggle(rows[activeIndex].employee);
+                }
+            } else if (e.key === "Escape") {
+                close();
+            }
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!document.getElementById("employeeCombo").contains(e.target)) {
+                close();
+            }
+        });
+
+        document.getElementById("createRoleForm")
+            .addEventListener("submit", function (e) {
+                if (Object.keys(selected).length === 0) {
+                    e.preventDefault();
+                    error.style.display = "flex";
+                    input.focus();
+                }
+            });
+    })();
+</script>

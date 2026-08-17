@@ -1,12 +1,13 @@
 using ITCompliance.API.Data;
 using ITCompliance.API.Models;
+using ITCompliance.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace ITCompliance.API.Controllers
 {
-    //[Authorize(Roles = "HOD")]
+    [Authorize(Roles = RoleNames.HOD)]
     public class HODController : Controller
     {
         private readonly AppDbContext _context;
@@ -19,19 +20,36 @@ namespace ITCompliance.API.Controllers
         [HttpGet]
         public async Task<IActionResult> Dashboard()
         {
-            var requests = await _context.InternetAccessRequests
-                .Where(r => r.Status == RequestStatus.ItOfficerApproved)
+            var deptCodes = User.GetDepartmentScopes(RoleNames.HOD);
+
+            var query = _context.InternetAccessRequests
+                .Where(r => r.Status == RequestStatus.ItOfficerApproved);
+
+            if (deptCodes.Count > 0)
+            {
+                query = query.Where(r => deptCodes.Contains(r.DepartmentCode));
+            }
+
+            var requests = await query
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
 
-            ViewBag.Kpis = await GetKpisAsync();
+            ViewBag.Kpis = await GetKpisAsync(deptCodes);
 
             return View(requests);
         }
 
-        private async Task<List<Kpi>> GetKpisAsync()
+        private async Task<List<Kpi>> GetKpisAsync(
+            IReadOnlyList<string> deptCodes)
         {
-            var counts = await _context.InternetAccessRequests
+            var query = _context.InternetAccessRequests.AsQueryable();
+
+            if (deptCodes.Count > 0)
+            {
+                query = query.Where(r => deptCodes.Contains(r.DepartmentCode));
+            }
+
+            var counts = await query
                 .GroupBy(r => r.Status)
                 .Select(g => new { g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.Key, x => x.Count);
@@ -65,15 +83,15 @@ namespace ITCompliance.API.Controllers
 
                 if (request == null)
                 {
-                    TempData["ErrorMessage"] = "Request not found.";
-                    return Redirect("/HOD/Dashboard");
+                    TempData["ErrorMessage"] = "The selected request was not found.";
+                    return RedirectToAction(nameof(Dashboard));
                 }
 
                 if (request.Status != RequestStatus.ItOfficerApproved)
                 {
                     TempData["ErrorMessage"] =
                         "This request is not available for HOD approval.";
-                    return Redirect("/HOD/Dashboard");
+                    return RedirectToAction(nameof(Dashboard));
                 }
 
                 request.Status = RequestStatus.HodApproved;
@@ -86,13 +104,13 @@ namespace ITCompliance.API.Controllers
 
                 TempData["SuccessMessage"] =
                     "Request approved successfully.";
-                return Redirect("/HOD/Dashboard");
+                return RedirectToAction(nameof(Dashboard));
             }
             catch
             {
                 TempData["ErrorMessage"] =
                     "HOD approval failed. Please try again.";
-                return Redirect("/HOD/Dashboard");
+                return RedirectToAction(nameof(Dashboard));
             }
         }
 
@@ -107,15 +125,15 @@ namespace ITCompliance.API.Controllers
 
                 if (request == null)
                 {
-                    TempData["ErrorMessage"] = "Request not found.";
-                    return Redirect("/HOD/Dashboard");
+                    TempData["ErrorMessage"] = "The selected request was not found.";
+                    return RedirectToAction(nameof(Dashboard));
                 }
 
                 if (request.Status != RequestStatus.ItOfficerApproved)
                 {
                     TempData["ErrorMessage"] =
                         "This request is not available for HOD processing.";
-                    return Redirect("/HOD/Dashboard");
+                    return RedirectToAction(nameof(Dashboard));
                 }
 
                 request.Status = RequestStatus.RejectedByHod;
@@ -128,13 +146,13 @@ namespace ITCompliance.API.Controllers
 
                 TempData["SuccessMessage"] =
                     "Request rejected successfully.";
-                return Redirect("/HOD/Dashboard");
+                return RedirectToAction(nameof(Dashboard));
             }
             catch
             {
                 TempData["ErrorMessage"] =
                     "HOD rejection failed. Please try again.";
-                return Redirect("/HOD/Dashboard");
+                return RedirectToAction(nameof(Dashboard));
             }
         }
     }

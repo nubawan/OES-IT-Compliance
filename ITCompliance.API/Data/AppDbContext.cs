@@ -22,6 +22,9 @@ namespace ITCompliance.API.Data
         // HOD Table
         public DbSet<HODDetail> HODDetails { get; set; }
 
+        // App-owned role grants
+        public DbSet<RoleAssignment> RoleAssignments { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -34,6 +37,23 @@ namespace ITCompliance.API.Data
             // HOD Table
             modelBuilder.Entity<HODDetail>()
                 .ToTable("tbl_HODdetails");
+
+            modelBuilder.Entity<RoleAssignment>(entity =>
+            {
+                entity.Property(r => r.EmployeeId).HasMaxLength(25);
+                entity.Property(r => r.Role).HasMaxLength(30);
+                entity.Property(r => r.DepartmentCode).HasMaxLength(30);
+
+                entity.HasIndex(r => r.EmployeeId);
+                entity.HasIndex(r => new { r.Role, r.DepartmentCode });
+            });
+
+            modelBuilder.Entity<InternetAccessRequest>(entity =>
+            {
+                entity.Property(r => r.DepartmentCode)
+                    .HasMaxLength(30)
+                    .HasDefaultValue("");
+            });
         }
     }
 }

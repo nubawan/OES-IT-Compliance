@@ -42,4 +42,6 @@ public partial class InternetAccessRequest
     public string LanMacId { get; set; }
 
     public string EmployeeEmail { get; set; }
+
+    public string DepartmentCode { get; set; }
 }

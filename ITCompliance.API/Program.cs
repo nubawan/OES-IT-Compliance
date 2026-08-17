@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using ITCompliance.API.Data;
+using ITCompliance.API.Models;
 using ITCompliance.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -54,6 +55,40 @@ builder.Services.AddSingleton<ActiveDirectoryService>();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Bootstrap the first Admin(s) from config so Role Management is
+// reachable without a chicken-and-egg manual DB edit. Idempotent -
+// safe to leave the config key populated across every deploy.
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    var bootstrapAdminIds = app.Configuration
+        .GetSection("Bootstrap:AdminEmployeeIds")
+        .Get<string[]>() ?? Array.Empty<string>();
+
+    foreach (var empId in bootstrapAdminIds
+        .Where(id => !string.IsNullOrWhiteSpace(id)))
+    {
+        var alreadyAdmin = db.RoleAssignments.Any(r =>
+            r.EmployeeId == empId &&
+            r.Role == RoleNames.Admin &&
+            r.IsActive);
+
+        if (!alreadyAdmin)
+        {
+            db.RoleAssignments.Add(new RoleAssignment
+            {
+                EmployeeId = empId,
+                Role = RoleNames.Admin,
+                DepartmentCode = null,
+                CreatedByEmpId = "SYSTEM"
+            });
+        }
+    }
+
+    db.SaveChanges();
+}
 
 if (app.Environment.IsDevelopment())
 {

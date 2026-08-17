@@ -23,5 +23,8 @@ logs/
 Thumbs.db
 .DS_Store
 
+# Local Claude Code settings
+.claude/
+
 # User-secrets are stored outside the repo (%APPDATA%\Microsoft\UserSecrets)
 # and never committed - see PROJECT_STATUS.md.

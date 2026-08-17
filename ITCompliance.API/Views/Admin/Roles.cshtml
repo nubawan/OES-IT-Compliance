@@ -1,0 +1,107 @@
+@model List<ITCompliance.API.Models.RoleAssignment>
+
+@{
+    ViewData["Title"] = "Role Management";
+    ViewData["PageSubtitle"] = "Assign and revoke roles for employees";
+
+    var employees = (Dictionary<string, ITCompliance.API.Models.OESEmployee>)ViewBag.Employees;
+}
+
+<section class="card">
+
+    <div class="card-head">
+
+        <div>
+            <h2>Role Assignments</h2>
+            <div class="card-head-desc">
+                Roles take effect the next time the assigned
+                person logs in.
+            </div>
+        </div>
+
+        <div class="card-head-side">
+            @if (Model.Any())
+            {
+                <span class="count-chip">@Model.Count active</span>
+            }
+            <a asp-controller="Admin"
+               asp-action="CreateRole"
+               class="btn btn-primary">
+                <svg class="icon"><use href="#i-plus" /></svg>
+                Assign Role
+            </a>
+        </div>
+
+    </div>
+
+    @if (Model.Any())
+    {
+        <div style="overflow-x:auto;">
+            <table class="data-table">
+
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Role</th>
+                        <th>Department</th>
+                        <th>Granted</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var assignment in Model)
+                    {
+                        employees.TryGetValue(assignment.EmployeeId, out var employee);
+
+                        <tr>
+                            <td>
+                                @if (employee != null)
+                                {
+                                    @employee.Name
+                                    <span style="color:var(--muted); font-size:12.5px;">
+                                        (@employee.Email)
+                                    </span>
+                                }
+                                else
+                                {
+                                    @assignment.EmployeeId
+                                }
+                            </td>
+                            <td>
+                                <span class="badge badge-it-officer-approved">
+                                    @assignment.Role
+                                </span>
+                            </td>
+                            <td>
+                                @(assignment.DepartmentCode ?? "All departments")
+                            </td>
+                            <td>
+                                @assignment.CreatedAt.ToString("dd MMM yyyy")
+                            </td>
+                            <td class="actions">
+                                <form method="post"
+                                      asp-controller="Admin"
+                                      asp-action="RevokeRole"
+                                      asp-route-id="@assignment.Id">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-reject">
+                                        Revoke
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+
+            </table>
+        </div>
+    }
+    else
+    {
+        <partial name="_EmptyState"
+                 model='("i-users", "No Roles Assigned",
+                     "No one has been granted an elevated role yet. Everyone can only access the employee dashboard.")' />
+    }
+
+</section>

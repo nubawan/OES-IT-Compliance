@@ -6,8 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ITCompliance.API.Controllers
 {
-    //[Authorize(Roles = "ITOfficer")]
-    [Route("ITOfficer")]
+    [Authorize(Roles = RoleNames.ITOfficer)]
     public class ITOfficerController : Controller
     {
         private readonly AppDbContext _context;
@@ -17,7 +16,7 @@ namespace ITCompliance.API.Controllers
             _context = context;
         }
 
-        [HttpGet("Dashboard")]
+        [HttpGet]
         public async Task<IActionResult> Dashboard()
         {
             var requests = await _context.InternetAccessRequests
@@ -44,66 +43,84 @@ namespace ITCompliance.API.Controllers
             return View(requests);
         }
 
-        [HttpPost("Approve")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Approve(int id, string? remarks)
         {
-            var request = await _context.InternetAccessRequests
-                .FirstOrDefaultAsync(r => r.Id == id);
-
-            if (request == null)
+            try
             {
-                TempData["ErrorMessage"] = "The selected request was not found.";
-                return Redirect("/ITOfficer/Dashboard");
-            }
+                var request = await _context.InternetAccessRequests
+                    .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (request.Status != RequestStatus.Pending)
+                if (request == null)
+                {
+                    TempData["ErrorMessage"] = "The selected request was not found.";
+                    return RedirectToAction(nameof(Dashboard));
+                }
+
+                if (request.Status != RequestStatus.Pending)
+                {
+                    TempData["ErrorMessage"] = "This request has already been processed.";
+                    return RedirectToAction(nameof(Dashboard));
+                }
+
+                request.Status = RequestStatus.ItOfficerApproved;
+                request.ITOfficerRemarks = string.IsNullOrWhiteSpace(remarks)
+                    ? "Approved by IT Officer"
+                    : remarks.Trim();
+                request.UpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Request approved successfully.";
+                return RedirectToAction(nameof(Dashboard));
+            }
+            catch
             {
-                TempData["ErrorMessage"] = "This request has already been processed.";
-                return Redirect("/ITOfficer/Dashboard");
+                TempData["ErrorMessage"] =
+                    "Approval failed. Please try again.";
+                return RedirectToAction(nameof(Dashboard));
             }
-
-            request.Status = RequestStatus.ItOfficerApproved;
-            request.ITOfficerRemarks = string.IsNullOrWhiteSpace(remarks)
-                ? "Approved by IT Officer"
-                : remarks.Trim();
-            request.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Request approved successfully.";
-            return Redirect("/ITOfficer/Dashboard");
         }
 
-        [HttpPost("Reject")]
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Reject(int id, string? remarks)
         {
-            var request = await _context.InternetAccessRequests
-                .FirstOrDefaultAsync(r => r.Id == id);
-
-            if (request == null)
+            try
             {
-                TempData["ErrorMessage"] = "The selected request was not found.";
-                return Redirect("/ITOfficer/Dashboard");
-            }
+                var request = await _context.InternetAccessRequests
+                    .FirstOrDefaultAsync(r => r.Id == id);
 
-            if (request.Status != RequestStatus.Pending)
+                if (request == null)
+                {
+                    TempData["ErrorMessage"] = "The selected request was not found.";
+                    return RedirectToAction(nameof(Dashboard));
+                }
+
+                if (request.Status != RequestStatus.Pending)
+                {
+                    TempData["ErrorMessage"] = "This request has already been processed.";
+                    return RedirectToAction(nameof(Dashboard));
+                }
+
+                request.Status = RequestStatus.Rejected;
+                request.ITOfficerRemarks = string.IsNullOrWhiteSpace(remarks)
+                    ? "Rejected by IT Officer"
+                    : remarks.Trim();
+                request.UpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Request rejected successfully.";
+                return RedirectToAction(nameof(Dashboard));
+            }
+            catch
             {
-                TempData["ErrorMessage"] = "This request has already been processed.";
-                return Redirect("/ITOfficer/Dashboard");
+                TempData["ErrorMessage"] =
+                    "Rejection failed. Please try again.";
+                return RedirectToAction(nameof(Dashboard));
             }
-
-            request.Status = RequestStatus.Rejected;
-            request.ITOfficerRemarks = string.IsNullOrWhiteSpace(remarks)
-                ? "Rejected by IT Officer"
-                : remarks.Trim();
-            request.UpdatedAt = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMessage"] = "Request rejected successfully.";
-            return Redirect("/ITOfficer/Dashboard");
         }
     }
 }

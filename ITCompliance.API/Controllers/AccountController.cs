@@ -1,4 +1,5 @@
 using ITCompliance.API.Data;
+using ITCompliance.API.Models;
 using ITCompliance.API.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -122,25 +123,7 @@ namespace ITCompliance.API.Controllers
                     return View();
                 }
 
-                var claims = new List<Claim>
-                {
-                    new Claim(
-                        ClaimTypes.Name,
-                        employee.Name ?? ""),
-
-                    new Claim(
-                        ClaimTypes.NameIdentifier,
-                        employee.EmpId ?? ""),
-
-                    new Claim(
-                        ClaimTypes.Email,
-                        employee.Email ?? ""),
-
-                    // Employee role
-                    new Claim(
-                        ClaimTypes.Role,
-                        "Employee")
-                };
+                var claims = await BuildClaimsForEmployeeAsync(employee);
 
                 var identity = new ClaimsIdentity(
                     claims,
@@ -267,27 +250,7 @@ namespace ITCompliance.API.Controllers
                     return View();
                 }
 
-                var claims = new List<Claim>
-                {
-                    new Claim(
-                        ClaimTypes.Name,
-                        employee.Name ?? ""),
-
-                    new Claim(
-                        ClaimTypes.NameIdentifier,
-                        employee.EmpId ?? ""),
-
-                    new Claim(
-                        ClaimTypes.Email,
-                        employee.Email ?? ""),
-
-                    // Same role as a normal employee login.
-                    // Will resolve the real role from the roles
-                    // tables once they are implemented.
-                    new Claim(
-                        ClaimTypes.Role,
-                        "Employee")
-                };
+                var claims = await BuildClaimsForEmployeeAsync(employee);
 
                 var identity = new ClaimsIdentity(
                     claims,
@@ -311,6 +274,45 @@ namespace ITCompliance.API.Controllers
 
                 return View();
             }
+        }
+
+        // Every authenticated user always gets RoleNames.Employee.
+        // Additional roles (and, for HOD, department scoping) come
+        // from active RoleAssignment rows for this EmpId.
+        private async Task<List<Claim>> BuildClaimsForEmployeeAsync(
+            OESEmployee employee)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, employee.Name ?? ""),
+                new Claim(ClaimTypes.NameIdentifier, employee.EmpId ?? ""),
+                new Claim(ClaimTypes.Email, employee.Email ?? ""),
+                new Claim(ClaimTypes.Role, RoleNames.Employee)
+            };
+
+            var assignments = await _context.RoleAssignments
+                .AsNoTracking()
+                .Where(r =>
+                    r.EmployeeId == employee.EmpId &&
+                    r.IsActive)
+                .ToListAsync();
+
+            foreach (var role in assignments
+                .Select(a => a.Role)
+                .Distinct())
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            foreach (var scoped in assignments
+                .Where(a => a.DepartmentCode != null))
+            {
+                claims.Add(new Claim(
+                    AppClaimTypes.DeptScope,
+                    $"{scoped.Role}|{scoped.DepartmentCode}"));
+            }
+
+            return claims;
         }
     }
 }
