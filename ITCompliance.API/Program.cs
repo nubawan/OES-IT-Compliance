@@ -59,8 +59,12 @@ var app = builder.Build();
 // Bootstrap the first Admin(s) from config so Role Management is
 // reachable without a chicken-and-egg manual DB edit. Idempotent -
 // safe to leave the config key populated across every deploy.
-using (var scope = app.Services.CreateScope())
+// Never lets a slow/unreachable DB stop the app from starting - same
+// graceful-degradation treatment as every other DB/AD access in this
+// app (see ActiveDirectoryService, AccountController).
+try
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
     var bootstrapAdminIds = app.Configuration
@@ -88,6 +92,14 @@ using (var scope = app.Services.CreateScope())
     }
 
     db.SaveChanges();
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(
+        ex,
+        "Could not apply Bootstrap:AdminEmployeeIds at startup - " +
+        "database unreachable or slow. The app will still start; " +
+        "this will retry on the next restart.");
 }
 
 if (app.Environment.IsDevelopment())
