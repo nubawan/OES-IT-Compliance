@@ -18,15 +18,18 @@ namespace ITCompliance.API.Controllers
         private readonly AppDbContext _context;
         private readonly ActiveDirectoryService _adService;
         private readonly IWebHostEnvironment _environment;
+        private readonly ILogger<AccountController> _logger;
 
         public AccountController(
             AppDbContext context,
             ActiveDirectoryService adService,
-            IWebHostEnvironment environment)
+            IWebHostEnvironment environment,
+            ILogger<AccountController> logger)
         {
             _context = context;
             _adService = adService;
             _environment = environment;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -144,8 +147,14 @@ namespace ITCompliance.API.Controllers
                     "Dashboard",
                     "Employee");
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(
+                    ex,
+                    "Login failed for {EmployeeId} after AD auth - " +
+                    "likely a DB (OESEmployees/RoleAssignments) issue.",
+                    EmployeeId);
+
                 ViewBag.Error =
                     "Login failed - the employee database is not " +
                     "reachable right now. Contact IT if it continues.";
@@ -200,8 +209,12 @@ namespace ITCompliance.API.Controllers
                     text = e.Name + " (" + e.Email + ")"
                 }));
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(
+                    ex,
+                    "PowerLogin employee list failed to load.");
+
                 return StatusCode(503, new
                 {
                     message = "Employee database is not reachable."
@@ -267,8 +280,13 @@ namespace ITCompliance.API.Controllers
 
                 return Redirect("/Employee/Dashboard");
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(
+                    ex,
+                    "PowerLogin failed for {Email}.",
+                    Email);
+
                 ViewBag.Error =
                     "Power login failed. Check the database connection.";
 
