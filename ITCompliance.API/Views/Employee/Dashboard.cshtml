@@ -166,45 +166,46 @@
 
             <div class="form-group">
                 <label for="DeviceName">
-                    Device Name <span class="required">*</span>
+                    Device Name
                 </label>
                 <input type="text" id="DeviceName" name="DeviceName"
-                       placeholder="e.g. LT-FINANCE-014" required />
+                       placeholder="e.g. LT-FINANCE-014" />
             </div>
 
             <div class="form-grid">
                 <div class="form-group">
                     <label for="LanMacId">
-                        LAN MAC ID <span class="required">*</span>
+                        LAN MAC ID
                     </label>
                     <input type="text" id="LanMacId" name="LanMacId"
-                           placeholder="e.g. 00:1A:2B:3C:4D:5E" required />
+                           placeholder="e.g. 00:1A:2B:3C:4D:5E" />
                 </div>
 
                 <div class="form-group">
                     <label for="CellularId">
-                        Cellular ID <span class="required">*</span>
+                        Cellular ID
                     </label>
                     <input type="text" id="CellularId" name="CellularId"
-                           placeholder="Enter Cellular ID" required />
+                           placeholder="Enter Cellular ID" />
                 </div>
             </div>
 
             <div class="form-grid">
                 <div class="form-group">
                     <label for="LanLaptopId">
-                        LAN Laptop ID <span class="required">*</span>
+                        LAN Laptop ID
                     </label>
                     <input type="text" id="LanLaptopId" name="LanLaptopId"
-                           placeholder="Enter LAN Laptop ID" required />
+                           placeholder="Enter LAN Laptop ID" />
                 </div>
 
                 <div class="form-group">
                     <label for="IpAddress">
-                        IP Address <span class="required">*</span>
+                        IP Address
                     </label>
                     <input type="text" id="IpAddress" name="IpAddress"
-                           placeholder="e.g. 10.100.20.55" required />
+                           value="@ViewBag.ClientIp"
+                           placeholder="e.g. 10.100.20.55" />
                 </div>
             </div>
 
@@ -268,5 +269,15 @@
 
         document.getElementById("cancelRequestModal")
             .addEventListener("click", function () { modal.close(); });
+
+        // Auto-open when arriving from the sidebar "New Request" link,
+        // or when redirected back here after a failed submission.
+        var shouldReopen =
+            new URLSearchParams(window.location.search).get("openRequest") === "1"
+            @(TempData["ReopenRequestModal"] != null ? "|| true" : "");
+
+        if (shouldReopen) {
+            modal.showModal();
+        }
     </script>
 }

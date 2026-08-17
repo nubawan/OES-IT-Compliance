@@ -49,6 +49,7 @@ namespace ITCompliance.API.Controllers
                     .ToListAsync();
 
                 ViewBag.Employee = employee;
+                ViewBag.ClientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
 
                 return View(requests);
             }
@@ -56,45 +57,6 @@ namespace ITCompliance.API.Controllers
             {
                 return Content(
                     "DASHBOARD ERROR\n\n" +
-                    ex.Message +
-                    "\n\nINNER ERROR\n" +
-                    (ex.InnerException?.Message ?? "No inner error")
-                );
-            }
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> SubmitRequest()
-        {
-            try
-            {
-                string? employeeId =
-                    User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                if (string.IsNullOrWhiteSpace(employeeId))
-                {
-                    return RedirectToAction("Login", "Account");
-                }
-
-                var employee = await _context.OESEmployees
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(e => e.EmpId == employeeId);
-
-                if (employee == null)
-                {
-                    await HttpContext.SignOutAsync();
-
-                    return RedirectToAction("Login", "Account");
-                }
-
-                ViewBag.Employee = employee;
-
-                return View("Request");
-            }
-            catch (Exception ex)
-            {
-                return Content(
-                    "REQUEST PAGE ERROR\n\n" +
                     ex.Message +
                     "\n\nINNER ERROR\n" +
                     (ex.InnerException?.Message ?? "No inner error")
@@ -122,19 +84,20 @@ namespace ITCompliance.API.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            var fields = new[]
-            {
-                website, reason, duration, deviceName,
-                lanMacId, cellularId, lanLaptopId, ipAddress
-            };
+            // Device Name/MAC/Cellular/LAN Laptop ID/IP Address can't
+            // be reliably auto-fetched or known by the employee, so
+            // they're all optional. IP is still pre-filled from the
+            // request's own connection when available.
+            var requiredFields = new[] { website, reason, duration };
 
-            if (fields.Any(string.IsNullOrWhiteSpace))
+            if (requiredFields.Any(string.IsNullOrWhiteSpace))
             {
                 TempData["ErrorMessage"] =
-                    "Please fill in all employee device " +
-                    "information and request fields.";
+                    "Please fill in the website, reason and " +
+                    "duration fields.";
+                TempData["ReopenRequestModal"] = true;
 
-                return RedirectToAction(nameof(SubmitRequest));
+                return RedirectToAction(nameof(Dashboard));
             }
 
             var employee = await _context.OESEmployees
@@ -156,11 +119,11 @@ namespace ITCompliance.API.Controllers
                         User.FindFirstValue(ClaimTypes.Email) ?? "",
                     DepartmentCode = employee.DepartmentCode ?? "",
 
-                    DeviceName = deviceName!.Trim(),
-                    LanMacId = lanMacId!.Trim(),
-                    CellularId = cellularId!.Trim(),
-                    LanLaptopId = lanLaptopId!.Trim(),
-                    IpAddress = ipAddress!.Trim(),
+                    DeviceName = deviceName?.Trim() ?? "",
+                    LanMacId = lanMacId?.Trim() ?? "",
+                    CellularId = cellularId?.Trim() ?? "",
+                    LanLaptopId = lanLaptopId?.Trim() ?? "",
+                    IpAddress = ipAddress?.Trim() ?? "",
 
                     Website = website!.Trim(),
                     Reason = reason!.Trim(),

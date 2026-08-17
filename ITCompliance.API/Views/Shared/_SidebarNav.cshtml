@@ -7,13 +7,13 @@
     var allNavItems = new List<(string Label, string Icon, string Url, string Section, string? Role)>
     {
         ("My Dashboard",     "i-dashboard", "/Employee/Dashboard",     "",               RoleNames.Employee),
-        ("New Request",      "i-plus",      "/Employee/SubmitRequest", "",               RoleNames.Employee),
+        ("New Request",      "i-plus",      "/Employee/Dashboard?openRequest=1", "",       RoleNames.Employee),
         ("IT Officer",       "i-monitor",   "/ITOfficer/Dashboard",    "Approvals",      RoleNames.ITOfficer),
         ("HOD",              "i-list",      "/HOD/Dashboard",          "Approvals",      RoleNames.HOD),
         ("Security Head",    "i-shield",    "/SecurityHead/Dashboard", "Approvals",      RoleNames.SecurityHead),
         ("Boss",             "i-award",     "/Boss/Dashboard",         "Approvals",      RoleNames.Boss),
         ("Role Management",  "i-users",     "/Admin/Roles",            "Administration", RoleNames.Admin),
-        ("Power Login",      "i-key",       "/PowerLogin",             "Developer",      null)
+        ("Power Login",      "i-key",       "/PowerLogin",             "Developer",      RoleNames.Admin)
     };
 
     var navItems = allNavItems
