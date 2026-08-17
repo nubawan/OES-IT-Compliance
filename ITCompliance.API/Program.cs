@@ -47,7 +47,14 @@ var connectionString =
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    options.UseSqlServer(connectionString);
+    options.UseSqlServer(connectionString, sql =>
+    {
+        // TEMP diagnostic bump from the 30s default - if a query
+        // still times out at 180s, it's a permanent block (a lock),
+        // not just a slow query. Revert once RoleAssignments queries
+        // are confirmed fast again.
+        sql.CommandTimeout(180);
+    });
 });
 
 builder.Services.AddSingleton<ActiveDirectoryService>();
