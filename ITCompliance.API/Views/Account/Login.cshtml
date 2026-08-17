@@ -1,0 +1,87 @@
+@{
+    Layout = null;
+
+    ViewData["Title"] = "Login";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        @ViewData["Title"] - IT Compliance Portal
+    </title>
+
+    <link rel="stylesheet" href="~/css/style.css">
+
+</head>
+
+<body>
+
+    <div class="login-container">
+
+        <div class="login-card">
+
+            <img src="~/assets/logo.png" class="logo" alt="Company Logo">
+
+            <h1>
+                IT Compliance Portal
+            </h1>
+
+            <p class="subtitle">
+                Internet Access Management System
+            </p>
+
+            <form asp-controller="Account"
+                  asp-action="Login"
+                  method="post">
+
+                @Html.AntiForgeryToken()
+
+                <div class="input-group">
+                    <label>Company Email</label>
+
+                    <input type="email"
+                           name="EmployeeId"
+                           placeholder="Enter Company Email"
+                           required
+                           autofocus />
+                </div>
+
+                <div class="input-group">
+                    <label>Password</label>
+
+                    <input type="password"
+                           name="Password"
+                           placeholder="Enter Password"
+                           required />
+                </div>
+
+                <button type="submit">
+                    Sign In
+                </button>
+
+            </form>
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="login-error">
+
+                    <span>&#9888;</span>
+
+                    <span>@ViewBag.Error</span>
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8" />
+<title>DB Model - IT Compliance Portal</title>
+<style>
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f4f5f7;margin:0;padding:32px;color:#111827;}
+h1{font-size:22px;margin:0 0 4px 0;} .sub{color:#6b7280;font-size:13.5px;margin-bottom:28px;}
+h2.sec{font-size:17px;margin:34px 0 6px 0;padding-bottom:8px;border-bottom:2px solid #C8102E;}
+.secsub{color:#6b7280;font-size:13px;margin-bottom:16px;}
+.grid{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start;}
+.entity{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 6px 20px rgba(16,24,40,.06);min-width:270px;max-width:360px;overflow:hidden;}
+.entity h3{font-size:15px;margin:0;padding:14px 18px;border-bottom:2px solid #C8102E;background:#fafafa;display:flex;justify-content:space-between;gap:10px;}
+.tag{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.05em;}
+.tag-table{background:#dbeafe;color:#1d4ed8;} .tag-view{background:#fef3c7;color:#92400e;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+td{padding:7px 18px;border-bottom:1px solid #f3f4f6;vertical-align:top;}
+td:first-child{font-weight:600;white-space:nowrap;} td:last-child{color:#6b7280;text-align:right;}
+.pk{color:#C8102E;font-weight:800;}
+.fks{padding:10px 18px;font-size:12px;color:#6b7280;}
+.foot{margin-top:30px;font-size:12px;color:#9ca3af;}
+</style></head><body>
+<h1>IT Compliance Portal - Database Model</h1>
+<div class="sub">Generated 14 Aug 2026 19:04 &middot; regenerate with: dotnet run --project tools/ModelDiagram</div>
+<h2 class="sec">Application Model (code-first)</h2>
+<div class="secsub">What the app uses - AppDbContext. Migrations are generated from this. &middot; 4 entities</div>
+<div class="grid">
+<div class="entity">
+<h3>Employees<span class="tag tag-table">table</span></h3>
+<table>
+<tr><td><span class="pk" title="Primary Key">&#128273; Id</span></td><td>Int32</td></tr>
+<tr><td>CellularId</td><td>String?</td></tr>
+<tr><td>Department</td><td>String?</td></tr>
+<tr><td>Designation</td><td>String?</td></tr>
+<tr><td>DeviceName</td><td>String?</td></tr>
+<tr><td>EmployeeId</td><td>String?</td></tr>
+<tr><td>IpAddress</td><td>String?</td></tr>
+<tr><td>LanLaptopId</td><td>String?</td></tr>
+<tr><td>LanMacId</td><td>String?</td></tr>
+<tr><td>Name</td><td>String?</td></tr>
+<tr><td>PasswordHash</td><td>String?</td></tr>
+<tr><td>Role</td><td>String?</td></tr>
+</table>
+</div>
+<div class="entity">
+<h3>InternetAccessRequests<span class="tag tag-table">table</span></h3>
+<table>
+<tr><td><span class="pk" title="Primary Key">&#128273; Id</span></td><td>Int32</td></tr>
+<tr><td>BossRemarks</td><td>String?</td></tr>
+<tr><td>CellularId</td><td>String?</td></tr>
+<tr><td>CreatedAt</td><td>DateTime</td></tr>
+<tr><td>DeviceName</td><td>String?</td></tr>
+<tr><td>Duration</td><td>String?</td></tr>
+<tr><td>EmployeeEmail</td><td>String?</td></tr>
+<tr><td>EmployeeId</td><td>String?</td></tr>
+<tr><td>HODRemarks</td><td>String?</td></tr>
+<tr><td>ITOfficerRemarks</td><td>String?</td></tr>
+<tr><td>IpAddress</td><td>String?</td></tr>
+<tr><td>LanLaptopId</td><td>String?</td></tr>
+<tr><td>LanMacId</td><td>String?</td></tr>
+<tr><td>Reason</td><td>String?</td></tr>
+<tr><td>SecurityHeadRemarks</td><td>String?</td></tr>
+<tr><td>Status</td><td>String?</td></tr>
+<tr><td>UpdatedAt</td><td>Nullable`1?</td></tr>
+<tr><td>Website</td><td>String?</td></tr>
+</table>
+</div>
+<div class="entity">
+<h3>OES_vuEmployeeDetails<span class="tag tag-view">view</span></h3>
+<table>
+<tr><td><span class="pk" title="Primary Key">&#128273; EmpId</span></td><td>String</td></tr>
+<tr><td>DepartmentCode</td><td>String</td></tr>
+<tr><td>DepartmentName</td><td>String</td></tr>
+<tr><td>Designation</td><td>String</td></tr>
+<tr><td>Email</td><td>String</td></tr>
+<tr><td>LocationCode</td><td>String</td></tr>
+<tr><td>LocationName</td><td>String</td></tr>
+<tr><td>Name</td><td>String</td></tr>
+<tr><td>RegionCode</td><td>String</td></tr>
+<tr><td>RegionName</td><td>String</td></tr>
+</table>
+</div>
+<div class="entity">
+<h3>tbl_HODdetails<span class="tag tag-table">table</span></h3>
+<table>
+<tr><td><span class="pk" title="Primary Key">&#128273; Id</span></td><td>Int32</td></tr>
+<tr><td>DeptCode</td><td>String</td></tr>
+<tr><td>DeptName</td><td>String</td></tr>
+<tr><td>DirectorEmpId</td><td>String?</td></tr>
+<tr><td>DirectorName</td><td>String?</td></tr>
+<tr><td>HODEmail</td><td>String</td></tr>
+<tr><td>HODEmpID</td><td>String</td></tr>
+<tr><td>HODName</td><td>String</td></tr>
+</table>
+</div>
+</div>
+<h2 class="sec">Real Database (scaffolded from SQL Server)</h2>
+<div class="secsub">What actually exists in ITcomplianceDB on 10.100.1.17. &middot; 5 entities</div>
+<div class="grid">
+<div class="entity">
+<h3>Employees<span class="tag tag-table">table</span></h3>
+<table>
+<tr><td><span class="pk" title="Primary Key">&#128273; Id</span></td><td>Int32</td></tr>
+<tr><td>CellularId</td><td>String</td></tr>
+<tr><td>Department</td><td>String</td></tr>
+<tr><td>Designation</td><td>String</td></tr>
+<tr><td>DeviceName</td><td>String</td></tr>
+<tr><td>EmployeeId</td><td>String</td></tr>
+<tr><td>IpAddress</td><td>String</td></tr>
+<tr><td>LanLaptopId</td><td>String</td></tr>
+<tr><td>LanMacId</td><td>String</td></tr>
+<tr><td>Name</td><td>String</td></tr>
+<tr><td>PasswordHash</td><td>String</td></tr>
+<tr><td>Role</td><td>String</td></tr>
+</table>
+</div>
+<div class="entity">
+<h3>InternetAccessRequests<span class="tag tag-table">table</span></h3>
+<table>
+<tr><td><span class="pk" title="Primary Key">&#128273; Id</span></td><td>Int32</td></tr>
+<tr><td>BossRemarks</td><td>String?</td></tr>
+<tr><td>CellularId</td><td>String</td></tr>
+<tr><td>CreatedAt</td><td>DateTime</td></tr>
+<tr><td>DeviceName</td><td>String</td></tr>
+<tr><td>Duration</td><td>String</td></tr>
+<tr><td>EmployeeEmail</td><td>String</td></tr>
+<tr><td>EmployeeId</td><td>String</td></tr>
+<tr><td>HODRemarks</td><td>String?</td></tr>
+<tr><td>ITOfficerRemarks</td><td>String?</td></tr>
+<tr><td>IpAddress</td><td>String</td></tr>
+<tr><td>LanLaptopId</td><td>String</td></tr>
+<tr><td>LanMacId</td><td>String</td></tr>
+<tr><td>Reason</td><td>String</td></tr>
+<tr><td>SecurityHeadRemarks</td><td>String?</td></tr>
+<tr><td>Status</td><td>String</td></tr>
+<tr><td>UpdatedAt</td><td>Nullable`1?</td></tr>
+<tr><td>Website</td><td>String</td></tr>
+</table>
+</div>
+<div class="entity">
+<h3>OES_vuEmployeeDetails<span class="tag tag-view">view</span></h3>
+<table>
+<tr><td>DepartmentCode</td><td>String</td></tr>
+<tr><td>DepartmentName</td><td>String</td></tr>
+<tr><td>Designation</td><td>String</td></tr>
+<tr><td>Email</td><td>String</td></tr>
+<tr><td>EmpId</td><td>String</td></tr>
+<tr><td>LocationCode</td><td>String</td></tr>
+<tr><td>LocationName</td><td>String</td></tr>
+<tr><td>Name</td><td>String</td></tr>
+<tr><td>RegionCode</td><td>String</td></tr>
+<tr><td>RegionName</td><td>String</td></tr>
+</table>
+</div>
+<div class="entity">
+<h3>tbl_Employee<span class="tag tag-table">table</span></h3>
+<table>
+<tr><td>CreatedBy</td><td>Nullable`1?</td></tr>
+<tr><td>CreatedOn</td><td>Nullable`1?</td></tr>
+<tr><td>Dept</td><td>String?</td></tr>
+<tr><td>DeviceId</td><td>String?</td></tr>
+<tr><td>DeviceStatus</td><td>String?</td></tr>
+<tr><td>Email</td><td>String?</td></tr>
+<tr><td>EmpId</td><td>String?</td></tr>
+<tr><td>EmpName</td><td>String?</td></tr>
+<tr><td>Id</td><td>Int64</td></tr>
+<tr><td>IsADUser</td><td>Nullable`1?</td></tr>
+<tr><td>IsActive</td><td>Nullable`1?</td></tr>
+<tr><td>LogIn</td><td>Nullable`1?</td></tr>
+<tr><td>LogOut</td><td>Nullable`1?</td></tr>
+<tr><td>ModifiedBy</td><td>Nullable`1?</td></tr>
+<tr><td>ModifiedOn</td><td>Nullable`1?</td></tr>
+<tr><td>Password</td><td>String?</td></tr>
+<tr><td>ReportToUserId</td><td>Nullable`1?</td></tr>
+<tr><td>UserTypeId</td><td>Nullable`1?</td></tr>
+<tr><td>Version</td><td>Nullable`1?</td></tr>
+</table>
+</div>
+<div class="entity">
+<h3>tbl_HODdetails<span class="tag tag-table">table</span></h3>
+<table>
+<tr><td><span class="pk" title="Primary Key">&#128273; Id</span></td><td>Int32</td></tr>
+<tr><td>DeptCode</td><td>String?</td></tr>
+<tr><td>DeptName</td><td>String?</td></tr>
+<tr><td>DirectorEmail</td><td>String?</td></tr>
+<tr><td>DirectorEmpId</td><td>String?</td></tr>
+<tr><td>DirectorName</td><td>String?</td></tr>
+<tr><td>HODemail</td><td>String?</td></tr>
+<tr><td>HODempID</td><td>String?</td></tr>
+<tr><td>HODname</td><td>String?</td></tr>
+</table>
+</div>
+</div>
+<div class="foot">IT Department - Internal Portal</div>
+</body></html>

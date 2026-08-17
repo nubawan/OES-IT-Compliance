@@ -1,0 +1,94 @@
+@using ITCompliance.API.Models
+
+@* Config-driven nav. Roles are shown until the roles DB lands;
+   then filter navItems by the user's role claim. *@
+@{
+    var navItems = new List<(string Label, string Icon, string Url, string Section)>
+    {
+        ("My Dashboard",  "i-dashboard", "/Employee/Dashboard",     ""),
+        ("New Request",   "i-plus",      "/Employee/SubmitRequest", ""),
+        ("IT Officer",    "i-monitor",   "/ITOfficer/Dashboard",    "Approvals"),
+        ("HOD",           "i-list",      "/HOD/Dashboard",          "Approvals"),
+        ("Security Head", "i-shield",    "/SecurityHead/Dashboard", "Approvals"),
+        ("Boss",          "i-award",     "/Boss/Dashboard",         "Approvals"),
+        ("Power Login",   "i-key",       "/PowerLogin",             "Developer")
+    };
+}
+
+<link rel="stylesheet"
+      href="~/css/sidenav.css"
+      asp-append-version="true" />
+
+<aside class="app-sidenav" id="appSidenav">
+
+    <div class="sidenav-brand">
+        <img src="~/assets/logo.png" alt="Company Logo" />
+        <span class="sidenav-label">IT Compliance</span>
+    </div>
+
+    <button type="button"
+            class="sidenav-toggle"
+            id="sidenavToggle"
+            title="Collapse menu">
+        <svg class="icon"><use href="#i-menu" /></svg>
+    </button>
+
+    <nav class="sidenav-nav">
+
+        @{ string? currentSection = null; }
+
+        @foreach (var item in navItems)
+        {
+            if (item.Section != currentSection)
+            {
+                currentSection = item.Section;
+
+                if (item.Section != "")
+                {
+                    <div class="sidenav-section sidenav-label">
+                        @item.Section
+                    </div>
+                }
+            }
+
+            <a class="sidenav-link" href="@item.Url" title="@item.Label">
+                <svg class="icon"><use href="#@item.Icon" /></svg>
+                <span class="sidenav-label">@item.Label</span>
+            </a>
+        }
+
+        <div class="sidenav-section sidenav-label">Session</div>
+
+        <a class="sidenav-link sidenav-logout"
+           href="/Account/Logout"
+           title="Logout">
+            <svg class="icon"><use href="#i-logout" /></svg>
+            <span class="sidenav-label">Logout</span>
+        </a>
+
+    </nav>
+
+</aside>
+
+<script>
+    (function () {
+        var body = document.body;
+        var key = "sidenav-collapsed";
+
+        if (localStorage.getItem(key) === "1") {
+            body.classList.add("sidenav-collapsed");
+        }
+
+        document.getElementById("sidenavToggle").addEventListener("click", function () {
+            body.classList.toggle("sidenav-collapsed");
+            localStorage.setItem(key,
+                body.classList.contains("sidenav-collapsed") ? "1" : "0");
+        });
+
+        document.querySelectorAll(".app-sidenav a").forEach(function (link) {
+            if (link.pathname.toLowerCase() === window.location.pathname.toLowerCase()) {
+                link.classList.add("active");
+            }
+        });
+    })();
+</script>

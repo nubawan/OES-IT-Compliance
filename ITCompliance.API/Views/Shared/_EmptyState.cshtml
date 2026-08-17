@@ -1,0 +1,9 @@
+@model (string Icon, string Title, string Text)
+
+<div class="empty-state">
+    <div class="empty-icon">
+        <svg class="icon"><use href="#@Model.Icon" /></svg>
+    </div>
+    <h3>@Model.Title</h3>
+    <p>@Model.Text</p>
+</div>

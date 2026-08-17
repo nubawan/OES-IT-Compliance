@@ -1,0 +1,272 @@
+@using ITCompliance.API.Models
+@model List<ITCompliance.API.Models.InternetAccessRequest>
+
+@{
+    ViewData["Title"] = "Employee Dashboard";
+    ViewData["PageSubtitle"] = "Internet Access Management System";
+
+    var employee = (ITCompliance.API.Models.OESEmployee?)ViewBag.Employee;
+
+    var kpis = new List<Kpi>
+    {
+        new("Pending", Model.Count(r => r.Status == RequestStatus.Pending), "warn"),
+        new("In progress", Model.Count(r => RequestStatus.IsInProgress(r.Status)), "info"),
+        new("Approved", Model.Count(r => r.Status == RequestStatus.BossApproved), "ok"),
+        new("Rejected", Model.Count(r => RequestStatus.IsRejected(r.Status)), "danger")
+    };
+}
+
+<div class="kpi-row">
+    @foreach (var kpi in kpis)
+    {
+        <partial name="_KpiCard" model="kpi" />
+    }
+</div>
+
+<section class="card">
+
+    <div class="card-head">
+
+        <div>
+            <h2>My Requests</h2>
+            <div class="card-head-desc">
+                Track the status of your internet access requests
+            </div>
+        </div>
+
+        <div class="card-head-side">
+            @if (Model.Any())
+            {
+                <span class="count-chip">
+                    @Model.Count request@(Model.Count == 1 ? "" : "s")
+                </span>
+            }
+            <div class="card-icon"><svg class="icon"><use href="#i-list" /></svg></div>
+        </div>
+
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="request-list">
+
+            @foreach (var request in Model)
+            {
+                var badgeClass = "badge-" +
+                    ((request.Status ?? "Pending")
+                        .ToLowerInvariant()
+                        .Replace(" ", "-"));
+
+                <div class="request-card">
+
+                    <div class="request-top">
+
+                        <div>
+                            <h3>
+                                <svg class="icon"><use href="#i-globe" /></svg>
+                                @request.Website
+                            </h3>
+                            <span class="request-date">
+                                Submitted:
+                                @request.CreatedAt.ToString("dd MMM yyyy, hh:mm tt")
+                            </span>
+                        </div>
+
+                        <span class="badge @badgeClass">@request.Status</span>
+
+                    </div>
+
+                    <div class="detail-grid">
+
+                        <div class="detail-item">
+                            <span class="detail-label">Business Justification</span>
+                            <span class="detail-value">@request.Reason</span>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">Required Duration</span>
+                            <span class="detail-value">@request.Duration</span>
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+    }
+    else
+    {
+        <partial name="_EmptyState"
+                 model='("i-inbox", "No Requests Yet",
+                     "You haven\u0027t submitted any internet access requests. Use the button above to create your first request.")' />
+    }
+
+</section>
+
+<section class="cta-panel">
+
+    <div>
+        <h2>Need Internet Access?</h2>
+        <p>
+            Submit a request for approval. It will be reviewed by
+            the IT Officer, your HOD, the Security Head and Boss.
+        </p>
+    </div>
+
+    <button type="button" class="btn btn-primary" id="openRequestModal">
+        <svg class="icon"><use href="#i-plus" /></svg>
+        Create New Request
+    </button>
+
+</section>
+
+<dialog class="modal" id="requestModal">
+
+    <div class="modal-head">
+        <h2>New Internet Access Request</h2>
+        <button type="button" class="modal-close" id="closeRequestModal" title="Close">
+            <svg class="icon"><use href="#i-x" /></svg>
+        </button>
+    </div>
+
+    <div class="modal-body">
+
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label>Employee ID</label>
+                <input type="text" value="@employee?.EmpId" readonly />
+            </div>
+
+            <div class="form-group">
+                <label>Employee Name</label>
+                <input type="text" value="@employee?.Name" readonly />
+            </div>
+
+            <div class="form-group">
+                <label>Department</label>
+                <input type="text" value="@employee?.DepartmentName" readonly />
+            </div>
+
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" value="@employee?.Email" readonly />
+            </div>
+
+        </div>
+
+        <div class="section-title">Device Information</div>
+
+        <form asp-controller="Employee"
+              asp-action="SubmitRequest"
+              method="post">
+
+            @Html.AntiForgeryToken()
+
+            <div class="form-group">
+                <label for="DeviceName">
+                    Device Name <span class="required">*</span>
+                </label>
+                <input type="text" id="DeviceName" name="DeviceName"
+                       placeholder="e.g. LT-FINANCE-014" required />
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="LanMacId">
+                        LAN MAC ID <span class="required">*</span>
+                    </label>
+                    <input type="text" id="LanMacId" name="LanMacId"
+                           placeholder="e.g. 00:1A:2B:3C:4D:5E" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="CellularId">
+                        Cellular ID <span class="required">*</span>
+                    </label>
+                    <input type="text" id="CellularId" name="CellularId"
+                           placeholder="Enter Cellular ID" required />
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="LanLaptopId">
+                        LAN Laptop ID <span class="required">*</span>
+                    </label>
+                    <input type="text" id="LanLaptopId" name="LanLaptopId"
+                           placeholder="Enter LAN Laptop ID" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="IpAddress">
+                        IP Address <span class="required">*</span>
+                    </label>
+                    <input type="text" id="IpAddress" name="IpAddress"
+                           placeholder="e.g. 10.100.20.55" required />
+                </div>
+            </div>
+
+            <div class="section-title">Access Details</div>
+
+            <div class="form-group">
+                <label for="Website">
+                    Website / URL <span class="required">*</span>
+                </label>
+                <input type="text" id="Website" name="Website"
+                       placeholder="e.g. https://example.com" required />
+            </div>
+
+            <div class="form-group">
+                <label for="Reason">
+                    Reason for Internet Access <span class="required">*</span>
+                </label>
+                <textarea id="Reason" name="Reason" rows="4"
+                          placeholder="Enter the business reason..."
+                          required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="Duration">
+                    Required Duration <span class="required">*</span>
+                </label>
+                <select id="Duration" name="Duration" required>
+                    <option value="">-- Select Duration --</option>
+                    <option value="1 Day">1 Day</option>
+                    <option value="3 Days">3 Days</option>
+                    <option value="1 Week">1 Week</option>
+                    <option value="1 Month">1 Month</option>
+                    <option value="Permanent">Permanent</option>
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-ghost" id="cancelRequestModal">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    Submit Request
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+</dialog>
+
+@section Scripts {
+    <script>
+        var modal = document.getElementById("requestModal");
+
+        document.getElementById("openRequestModal")
+            .addEventListener("click", function () { modal.showModal(); });
+
+        document.getElementById("closeRequestModal")
+            .addEventListener("click", function () { modal.close(); });
+
+        document.getElementById("cancelRequestModal")
+            .addEventListener("click", function () { modal.close(); });
+    </script>
+}

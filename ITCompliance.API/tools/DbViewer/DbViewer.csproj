@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- ============================================================
+       DbViewer - .NET Framework 4.8 companion project.
+
+       EXISTS ONLY so the classic LINQ to SQL (.dbml) DESIGNER
+       works in Visual Studio. The .dbml file inside this project
+       gives you the drag-drop table view over the live
+       ITcomplianceDB database - the same workflow as the old
+       OESAXRM portal.
+
+       The main ITCompliance.API project does NOT use this and
+       does not reference it. Open in Visual Studio:
+
+           File > Open > Project/Solution > tools\DbViewer\DbViewer.csproj
+
+       Then double-click ITcomplianceDB.dbml.
+       (If the design surface looks empty: save the file once -
+       Visual Studio will run the generator and lay out tables.
+       You can also drag more tables in from Server Explorer.)
+  ============================================================ -->
+
+  <PropertyGroup>
+    <ProjectGuid>{7f4a2c19-8e53-4b6a-9c77-2d5e1f0a3b44}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>DbViewer</RootNamespace>
+    <AssemblyName>DbViewer</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.Linq" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="ITcomplianceDB.dbml">
+      <Generator>MSLinqToSQLGenerator</Generator>
+      <LastGenOutput>ITcomplianceDB.designer.cs</LastGenOutput>
+      <CustomToolNamespace>DbViewer</CustomToolNamespace>
+    </None>
+    <None Include="DbViewer.csproj" />
+  </ItemGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
+</Project>

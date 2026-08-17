@@ -1,0 +1,170 @@
+@using ITCompliance.API.Models
+@model List<ITCompliance.API.Models.InternetAccessRequest>
+
+@{
+    ViewData["Title"] = "IT Officer Dashboard";
+    ViewData["PageSubtitle"] = "First stage - review employee internet access requests";
+}
+
+<div class="kpi-row">
+    @foreach (var kpi in (List<Kpi>)ViewBag.Kpis)
+    {
+        <partial name="_KpiCard" model="kpi" />
+    }
+</div>
+
+<section class="card">
+
+    <div class="card-head">
+
+        <div>
+            <h2>Internet Access Requests</h2>
+            <div class="card-head-desc">
+                Pending items await your first-stage approval
+                before they move to the HOD.
+            </div>
+        </div>
+
+        <div class="card-head-side">
+            @if (Model.Any())
+            {
+                <span class="count-chip">@Model.Count total</span>
+            }
+            <div class="card-icon"><svg class="icon"><use href="#i-monitor" /></svg></div>
+        </div>
+
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="request-list">
+
+            @foreach (var request in Model)
+            {
+                var badgeClass = "badge-" +
+                    ((request.Status ?? "Pending")
+                        .ToLowerInvariant()
+                        .Replace(" ", "-"));
+
+                <div class="request-card">
+
+                    <div class="request-top">
+
+                        <div>
+                            <h3>
+                                <svg class="icon"><use href="#i-globe" /></svg>
+                                @request.Website
+                            </h3>
+                            <span class="request-date">
+                                Submitted:
+                                @request.CreatedAt.ToString("dd MMM yyyy, hh:mm tt")
+                            </span>
+
+                            <div class="request-meta">
+                                <span class="meta-chip">
+                                    <svg class="icon"><use href="#i-user" /></svg>
+                                    @request.EmployeeId
+                                </span>
+
+                                @if (!string.IsNullOrWhiteSpace(request.EmployeeEmail))
+                                {
+                                    <span class="meta-chip">@request.EmployeeEmail</span>
+                                }
+                            </div>
+                        </div>
+
+                        <span class="badge @badgeClass">@request.Status</span>
+
+                    </div>
+
+                    <div class="detail-grid">
+
+                        <div class="detail-item">
+                            <span class="detail-label">Device Name</span>
+                            <span class="detail-value">@request.DeviceName</span>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">LAN MAC ID</span>
+                            <span class="detail-value">@request.LanMacId</span>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">Cellular ID</span>
+                            <span class="detail-value">@request.CellularId</span>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">LAN Laptop ID</span>
+                            <span class="detail-value">@request.LanLaptopId</span>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">IP Address</span>
+                            <span class="detail-value">@request.IpAddress</span>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">Required Duration</span>
+                            <span class="detail-value">@request.Duration</span>
+                        </div>
+
+                        <div class="detail-item detail-item--wide">
+                            <span class="detail-label">Business Justification</span>
+                            <span class="detail-value">@request.Reason</span>
+                        </div>
+
+                    </div>
+
+                    @if (request.Status == RequestStatus.Pending)
+                    {
+                        <div class="action-bar">
+
+                            <form method="post">
+
+                                @Html.AntiForgeryToken()
+
+                                <input type="hidden" name="id" value="@request.Id" />
+
+                                <input class="action-remarks"
+                                       type="text"
+                                       name="remarks"
+                                       placeholder="Remarks (optional for approval, recommended for rejection)"
+                                       autocomplete="off" />
+
+                                <div class="action-buttons">
+
+                                    <button type="submit"
+                                            class="btn btn-approve"
+                                            formaction="/ITOfficer/Approve">
+                                        <svg class="icon"><use href="#i-check" /></svg>
+                                        Approve
+                                    </button>
+
+                                    <button type="submit"
+                                            class="btn btn-reject"
+                                            formaction="/ITOfficer/Reject">
+                                        <svg class="icon"><use href="#i-x" /></svg>
+                                        Reject
+                                    </button>
+
+                                </div>
+
+                            </form>
+
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </div>
+    }
+    else
+    {
+        <partial name="_EmptyState"
+                 model='("i-inbox", "No Requests",
+                     "There are currently no employee internet access requests in the system.")' />
+    }
+
+</section>

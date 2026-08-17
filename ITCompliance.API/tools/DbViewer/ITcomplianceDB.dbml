@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Database Name="ITcomplianceDB" Class="ITcomplianceDBDataContext" xmlns="http://schemas.microsoft.com/linqtosql/dbml/2007">
+  <Table Name="dbo.Employees" Member="Employee">
+    <Type Name="Employee">
+      <Column Name="Id" Type="System.Int32" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="CellularId" Type="System.String" CanBeNull="false" />
+      <Column Name="Department" Type="System.String" CanBeNull="false" />
+      <Column Name="Designation" Type="System.String" CanBeNull="false" />
+      <Column Name="DeviceName" Type="System.String" CanBeNull="false" />
+      <Column Name="EmployeeId" Type="System.String" CanBeNull="false" />
+      <Column Name="IpAddress" Type="System.String" CanBeNull="false" />
+      <Column Name="LanLaptopId" Type="System.String" CanBeNull="false" />
+      <Column Name="LanMacId" Type="System.String" CanBeNull="false" />
+      <Column Name="Name" Type="System.String" CanBeNull="false" />
+      <Column Name="PasswordHash" Type="System.String" CanBeNull="false" />
+      <Column Name="Role" Type="System.String" CanBeNull="false" />
+    </Type>
+  </Table>
+  <Table Name="dbo.InternetAccessRequests" Member="InternetAccessRequest">
+    <Type Name="InternetAccessRequest">
+      <Column Name="Id" Type="System.Int32" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="BossRemarks" Type="System.String" CanBeNull="true" />
+      <Column Name="CellularId" Type="System.String" CanBeNull="false" />
+      <Column Name="CreatedAt" Type="System.DateTime" CanBeNull="false" />
+      <Column Name="DeviceName" Type="System.String" CanBeNull="false" />
+      <Column Name="Duration" Type="System.String" CanBeNull="false" />
+      <Column Name="EmployeeEmail" Type="System.String" CanBeNull="false" />
+      <Column Name="EmployeeId" Type="System.String" CanBeNull="false" />
+      <Column Name="HODRemarks" Type="System.String" CanBeNull="true" />
+      <Column Name="ITOfficerRemarks" Type="System.String" CanBeNull="true" />
+      <Column Name="IpAddress" Type="System.String" CanBeNull="false" />
+      <Column Name="LanLaptopId" Type="System.String" CanBeNull="false" />
+      <Column Name="LanMacId" Type="System.String" CanBeNull="false" />
+      <Column Name="Reason" Type="System.String" CanBeNull="false" />
+      <Column Name="SecurityHeadRemarks" Type="System.String" CanBeNull="true" />
+      <Column Name="Status" Type="System.String" CanBeNull="false" />
+      <Column Name="UpdatedAt" Type="System.Nullable`1" CanBeNull="true" />
+      <Column Name="Website" Type="System.String" CanBeNull="false" />
+    </Type>
+  </Table>
+  <Table Name="dbo.OES_vuEmployeeDetails" Member="OES_vuEmployeeDetail">
+    <Type Name="OES_vuEmployeeDetail">
+      <Column Name="DepartmentCode" Type="System.String" CanBeNull="false" />
+      <Column Name="DepartmentName" Type="System.String" CanBeNull="false" />
+      <Column Name="Designation" Type="System.String" CanBeNull="false" />
+      <Column Name="Email" Type="System.String" CanBeNull="false" />
+      <Column Name="EmpId" Type="System.String" CanBeNull="false" />
+      <Column Name="LocationCode" Type="System.String" CanBeNull="false" />
+      <Column Name="LocationName" Type="System.String" CanBeNull="false" />
+      <Column Name="Name" Type="System.String" CanBeNull="false" />
+      <Column Name="RegionCode" Type="System.String" CanBeNull="false" />
+      <Column Name="RegionName" Type="System.String" CanBeNull="false" />
+    </Type>
+  </Table>
+  <Table Name="dbo.tbl_Employee" Member="tbl_Employee">
+    <Type Name="tbl_Employee">
+      <Column Name="CreatedBy" Type="System.Nullable`1" CanBeNull="true" />
+      <Column Name="CreatedOn" Type="System.Nullable`1" CanBeNull="true" />
+      <Column Name="Dept" Type="System.String" CanBeNull="true" />
+      <Column Name="DeviceId" Type="System.String" CanBeNull="true" />
+      <Column Name="DeviceStatus" Type="System.String" CanBeNull="true" />
+      <Column Name="Email" Type="System.String" CanBeNull="true" />
+      <Column Name="EmpId" Type="System.String" CanBeNull="true" />
+      <Column Name="EmpName" Type="System.String" CanBeNull="true" />
+      <Column Name="Id" Type="System.Int64" CanBeNull="false" />
+      <Column Name="IsADUser" Type="System.Nullable`1" CanBeNull="true" />
+      <Column Name="IsActive" Type="System.Nullable`1" CanBeNull="true" />
+      <Column Name="LogIn" Type="System.Nullable`1" CanBeNull="true" />
+      <Column Name="LogOut" Type="System.Nullable`1" CanBeNull="true" />
+      <Column Name="ModifiedBy" Type="System.Nullable`1" CanBeNull="true" />
+      <Column Name="ModifiedOn" Type="System.Nullable`1" CanBeNull="true" />
+      <Column Name="Password" Type="System.String" CanBeNull="true" />
+      <Column Name="ReportToUserId" Type="System.Nullable`1" CanBeNull="true" />
+      <Column Name="UserTypeId" Type="System.Nullable`1" CanBeNull="true" />
+      <Column Name="Version" Type="System.Nullable`1" CanBeNull="true" />
+    </Type>
+  </Table>
+  <Table Name="dbo.tbl_HODdetails" Member="tbl_HODdetail">
+    <Type Name="tbl_HODdetail">
+      <Column Name="Id" Type="System.Int32" IsPrimaryKey="true" CanBeNull="false" />
+      <Column Name="DeptCode" Type="System.String" CanBeNull="true" />
+      <Column Name="DeptName" Type="System.String" CanBeNull="true" />
+      <Column Name="DirectorEmail" Type="System.String" CanBeNull="true" />
+      <Column Name="DirectorEmpId" Type="System.String" CanBeNull="true" />
+      <Column Name="DirectorName" Type="System.String" CanBeNull="true" />
+      <Column Name="HODemail" Type="System.String" CanBeNull="true" />
+      <Column Name="HODempID" Type="System.String" CanBeNull="true" />
+      <Column Name="HODname" Type="System.String" CanBeNull="true" />
+    </Type>
+  </Table>
+</Database>

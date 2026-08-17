@@ -1,0 +1,269 @@
+@{
+    Layout = null;
+
+    ViewData["Title"] = "Login";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        @ViewData["Title"] - IT Compliance Portal
+    </title>
+
+    <link rel="stylesheet" href="~/css/style.css">
+
+</head>
+
+
+<body>
+
+
+    <div class="login-container">
+
+
+        <div class="login-card">
+
+
+            <img src="~/assets/logo.png" class="logo" alt="Company Logo">
+
+
+            <h1>
+                IT Compliance Portal
+            </h1>
+
+
+            <p class="subtitle">
+                Internet Access Management System
+            </p>
+
+
+            <form asp-controller="Account"
+                  asp-action="PowerLogin"
+                  method="post"
+                  id="powerLoginForm">
+
+                @Html.AntiForgeryToken()
+
+                <div class="input-group">
+                    <label>Login As</label>
+
+                    <div class="combo" id="employeeCombo">
+
+                        <input type="text"
+                               id="comboInput"
+                               class="combo-input"
+                               placeholder="Type a name or email to search..."
+                               autocomplete="off" />
+
+                        <input type="hidden"
+                               name="Email"
+                               id="comboValue" />
+
+                        <div class="combo-list"
+                             id="comboList"></div>
+
+                    </div>
+
+                    <div class="login-error"
+                         id="comboError"
+                         style="display:none; margin-top:10px;">
+                        <span>&#9888;</span>
+                        <span>Select an employee from the list.</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Password</label>
+
+                    <input type="password"
+                           name="Password"
+                           placeholder="Enter Password"
+                           required />
+                </div>
+
+                <button type="submit">
+                    Sign In
+                </button>
+
+            </form>
+
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="login-error">
+
+                    <span>&#9888;</span>
+
+                    <span>@ViewBag.Error</span>
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+
+
+    <script>
+        (function () {
+            var employees = [];
+            var input = document.getElementById("comboInput");
+            var hidden = document.getElementById("comboValue");
+            var list = document.getElementById("comboList");
+            var error = document.getElementById("comboError");
+            var activeIndex = -1;
+            var rows = [];
+
+            fetch("/PowerLogin/Employees")
+                .then(function (r) {
+                    if (!r.ok) throw new Error("db");
+                    return r.json();
+                })
+                .then(function (data) {
+                    employees = data;
+                })
+                .catch(function () {
+                    list.innerHTML =
+                        '<div class="combo-empty">' +
+                        'Could not load employees - database unreachable' +
+                        "</div>";
+                    list.classList.add("open");
+                });
+
+            function matches(query) {
+                if (!query) return employees;
+                var q = query.toLowerCase();
+                return employees.filter(function (e) {
+                    return e.text.toLowerCase().indexOf(q) !== -1;
+                });
+            }
+
+            function render(items) {
+                list.innerHTML = "";
+                rows = [];
+
+                if (!items.length) {
+                    list.innerHTML =
+                        '<div class="combo-empty">No matching employees</div>';
+                    activeIndex = -1;
+                    return;
+                }
+
+                items.slice(0, 50).forEach(function (e) {
+                    var row = document.createElement("div");
+                    row.className = "combo-option";
+                    row.textContent = e.text;
+                    row.addEventListener("mousedown", function (ev) {
+                        ev.preventDefault();
+                        choose(e);
+                    });
+                    list.appendChild(row);
+                    rows.push({ row: row, employee: e });
+                });
+
+                if (items.length > 50) {
+                    var more = document.createElement("div");
+                    more.className = "combo-more";
+                    more.textContent =
+                        (items.length - 50) +
+                        " more - keep typing to narrow down";
+                    list.appendChild(more);
+                }
+
+                activeIndex = -1;
+            }
+
+            function choose(employee) {
+                input.value = employee.text;
+                hidden.value = employee.value;
+                error.style.display = "none";
+                close();
+            }
+
+            function open() {
+                list.classList.add("open");
+                render(matches(input.value.trim()));
+            }
+
+            function close() {
+                list.classList.remove("open");
+                activeIndex = -1;
+            }
+
+            function highlight() {
+                rows.forEach(function (r) {
+                    r.row.classList.remove("active");
+                });
+                if (rows[activeIndex]) {
+                    rows[activeIndex].row.classList.add("active");
+                    rows[activeIndex].row.scrollIntoView({ block: "nearest" });
+                }
+            }
+
+            input.addEventListener("focus", open);
+            input.addEventListener("click", open);
+
+            input.addEventListener("input", function () {
+                hidden.value = "";
+                open();
+            });
+
+            input.addEventListener("keydown", function (e) {
+                if (!list.classList.contains("open")) {
+                    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                        e.preventDefault();
+                        open();
+                    }
+                    return;
+                }
+
+                if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    if (rows.length) {
+                        activeIndex = (activeIndex + 1) % rows.length;
+                        highlight();
+                    }
+                } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    if (rows.length) {
+                        activeIndex = activeIndex <= 0
+                            ? rows.length - 1
+                            : activeIndex - 1;
+                        highlight();
+                    }
+                } else if (e.key === "Enter") {
+                    if (rows[activeIndex]) {
+                        e.preventDefault();
+                        choose(rows[activeIndex].employee);
+                    }
+                } else if (e.key === "Escape") {
+                    close();
+                }
+            });
+
+            document.addEventListener("click", function (e) {
+                if (!document.getElementById("employeeCombo").contains(e.target)) {
+                    close();
+                }
+            });
+
+            document.getElementById("powerLoginForm")
+                .addEventListener("submit", function (e) {
+                    if (!hidden.value) {
+                        e.preventDefault();
+                        error.style.display = "flex";
+                        input.focus();
+                    }
+                });
+        })();
+    </script>
+
+</body>
+
+</html>

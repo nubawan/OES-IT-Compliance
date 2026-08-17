@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+
+    <title>
+        @(ViewData["Title"] ?? "Portal") - IT Compliance Portal
+    </title>
+
+    <link rel="stylesheet"
+          href="~/css/theme.css"
+          asp-append-version="true" />
+</head>
+
+<body>
+
+    <partial name="_IconSprite" />
+    <partial name="_SidebarNav" />
+
+    <div class="theme-shell">
+
+        <header class="topbar">
+
+            <div class="topbar-titles">
+                <h1>@ViewData["Title"]</h1>
+
+                @if (ViewData["PageSubtitle"] != null)
+                {
+                    <p>@ViewData["PageSubtitle"]</p>
+                }
+            </div>
+
+            <div class="topbar-side">
+
+                <details class="menu-dropdown" id="notificationsMenu">
+                    <summary title="Notifications">
+                        <svg class="icon"><use href="#i-bell" /></svg>
+                    </summary>
+                    <div class="menu-panel">
+                        <div class="menu-panel-head">Notifications</div>
+                        <div class="menu-panel-body">
+                            <div class="menu-empty">
+                                <svg class="icon"><use href="#i-inbox" /></svg>
+                                <p>No new notifications</p>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="menu-dropdown" id="userMenu">
+                    <summary class="user-chip">
+                        <span class="user-avatar">
+                            @(
+                                (User.Identity?.Name ?? "?")
+                                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                                    .Take(2)
+                                    .Select(p => p[..1].ToUpperInvariant())
+                                    .DefaultIfEmpty("?")
+                                    .Aggregate(string.Concat)
+                            )
+                        </span>
+                        <span class="user-chip-meta">
+                            <span>Signed in as</span>
+                            <strong>@User.Identity?.Name</strong>
+                        </span>
+                    </summary>
+                    <div class="menu-panel">
+                        <div class="menu-panel-head">
+                            @User.Identity?.Name
+                        </div>
+                        <div class="menu-panel-body">
+                            <a asp-controller="Account"
+                               asp-action="Logout"
+                               class="menu-item">
+                                <svg class="icon"><use href="#i-logout" /></svg>
+                                Logout
+                            </a>
+                        </div>
+                    </div>
+                </details>
+
+            </div>
+
+        </header>
+
+        @if (TempData["SuccessMessage"] != null ||
+             TempData["ErrorMessage"] != null)
+        {
+            <div class="alert-bar">
+
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success">
+                        <span class="alert-icon">&#10003;</span>
+                        <span>@TempData["SuccessMessage"]</span>
+                    </div>
+                }
+
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-error">
+                        <span class="alert-icon">!</span>
+                        <span>@TempData["ErrorMessage"]</span>
+                    </div>
+                }
+
+            </div>
+        }
+
+        <main class="page-body">
+            @RenderBody()
+        </main>
+
+        <footer class="page-footer">
+            <p>
+                <strong>IT Department</strong> - Internal Portal &middot;
+                Internet Access Management System
+            </p>
+        </footer>
+
+    </div>
+
+    <script>
+        // Close open dropdowns when clicking elsewhere
+        document.addEventListener("click", function (e) {
+            document.querySelectorAll("details.menu-dropdown[open]")
+                .forEach(function (d) {
+                    if (!d.contains(e.target)) d.removeAttribute("open");
+                });
+        });
+
+        // Prevent double form submissions
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll("form").forEach(function (form) {
+                form.addEventListener("submit", function () {
+                    form.querySelectorAll("button[type='submit']")
+                        .forEach(function (button) {
+                            if (button.disabled) return;
+                            button.disabled = true;
+                            button.dataset.originalText = button.innerText;
+                            button.innerText = "Please wait...";
+                            setTimeout(function () {
+                                button.disabled = false;
+                                button.innerText = button.dataset.originalText;
+                            }, 8000);
+                        });
+                });
+            });
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+
+</body>
+
+</html>

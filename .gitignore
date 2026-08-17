@@ -1,0 +1,27 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+publish/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Rider / VS Code
+.idea/
+.vscode/
+
+# EF Core Power Tools
+efpt.*.sql
+
+# Logs
+logs/
+*.log
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# User-secrets are stored outside the repo (%APPDATA%\Microsoft\UserSecrets)
+# and never committed - see PROJECT_STATUS.md.

@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ITCompliance.API/ITCompliance.API.csproj" />
+  <Project Path="ITCompliance.API/tools/DbViewer/DbViewer.csproj" Id="7f4a2c19-8e53-4b6a-9c77-2d5e1f0a3b44" />
+</Solution>
