@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using ITCompliance.API.Data;
 using ITCompliance.API.Models;
 using ITCompliance.API.Services;
@@ -7,15 +8,30 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ITCompliance.API.Controllers
 {
+    // Serves two "hats": a department's own HOD (first stage, for
+    // requesters outside the IT department) and IT's HOD (the final,
+    // universal approval stage for every request - see
+    // Services/WorkflowRouter.cs). Both are just the HOD role scoped
+    // to different departments via RoleAssignment.
     [Authorize(Roles = RoleNames.HOD)]
     public class HODController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IWorkflowNotificationService _notifications;
+        private readonly IConfiguration _configuration;
 
-        public HODController(AppDbContext context)
+        public HODController(
+            AppDbContext context,
+            IWorkflowNotificationService notifications,
+            IConfiguration configuration)
         {
             _context = context;
+            _notifications = notifications;
+            _configuration = configuration;
         }
+
+        private string ItDepartmentCode =>
+            _configuration["Workflow:ItDepartmentCode"] ?? "93";
 
         [HttpGet]
         public async Task<IActionResult> Dashboard()
@@ -23,11 +39,13 @@ namespace ITCompliance.API.Controllers
             var deptCodes = User.GetDepartmentScopes(RoleNames.HOD);
 
             var query = _context.InternetAccessRequests
-                .Where(r => r.Status == RequestStatus.ItOfficerApproved);
+                .Where(r =>
+                    r.Status == RequestStatus.AwaitingOwnHod ||
+                    r.Status == RequestStatus.AwaitingItHod);
 
             if (deptCodes.Count > 0)
             {
-                query = query.Where(r => deptCodes.Contains(r.DepartmentCode));
+                query = query.Where(r => deptCodes.Contains(r.PendingDepartmentCode));
             }
 
             var requests = await query
@@ -42,33 +60,33 @@ namespace ITCompliance.API.Controllers
         private async Task<List<Kpi>> GetKpisAsync(
             IReadOnlyList<string> deptCodes)
         {
-            var query = _context.InternetAccessRequests.AsQueryable();
+            var awaitingQuery = _context.InternetAccessRequests
+                .Where(r =>
+                    r.Status == RequestStatus.AwaitingOwnHod ||
+                    r.Status == RequestStatus.AwaitingItHod);
 
             if (deptCodes.Count > 0)
             {
-                query = query.Where(r => deptCodes.Contains(r.DepartmentCode));
+                awaitingQuery = awaitingQuery.Where(
+                    r => deptCodes.Contains(r.PendingDepartmentCode));
             }
 
-            var counts = await query
-                .GroupBy(r => r.Status)
+            var awaitingCount = await awaitingQuery.CountAsync();
+
+            var actedCounts = await _context.RequestTransactions
+                .Where(t => t.ActorRole == RoleNames.HOD)
+                .GroupBy(t => t.Action)
                 .Select(g => new { g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.Key, x => x.Count);
 
-            int Count(string status) =>
-                counts.TryGetValue(status, out var c) ? c : 0;
+            int Count(string action) =>
+                actedCounts.TryGetValue(action, out var c) ? c : 0;
 
             return new List<Kpi>
             {
-                new("Awaiting my approval",
-                    Count(RequestStatus.ItOfficerApproved), "info"),
-
-                new("Approved by me",
-                    Count(RequestStatus.HodApproved) +
-                    Count(RequestStatus.SecurityHeadApproved) +
-                    Count(RequestStatus.BossApproved), "ok"),
-
-                new("Rejected by me",
-                    Count(RequestStatus.RejectedByHod), "danger")
+                new("Awaiting my approval", awaitingCount, "info"),
+                new("Approved by me", Count(TransactionAction.Approve), "ok"),
+                new("Rejected by me", Count(TransactionAction.Reject), "danger")
             };
         }
 
@@ -87,20 +105,34 @@ namespace ITCompliance.API.Controllers
                     return RedirectToAction(nameof(Dashboard));
                 }
 
-                if (request.Status != RequestStatus.ItOfficerApproved)
+                if (!IsValidHodStage(request) || !IsInMyScope(request))
                 {
                     TempData["ErrorMessage"] =
-                        "This request is not available for HOD approval.";
+                        "This request is not available for your approval.";
                     return RedirectToAction(nameof(Dashboard));
                 }
 
-                request.Status = RequestStatus.HodApproved;
-                request.HODRemarks = string.IsNullOrWhiteSpace(remarks)
-                    ? "Approved by HOD"
-                    : remarks.Trim();
+                var completedStage = request.Status;
+
+                RecordTransaction(request, completedStage, TransactionAction.Approve, remarks);
+
+                var (nextStatus, nextPendingDept) =
+                    WorkflowRouter.GetNextStage(request.Status, ItDepartmentCode);
+
+                request.Status = nextStatus;
+                request.PendingDepartmentCode = nextPendingDept ?? "";
                 request.UpdatedAt = DateTime.Now;
 
                 await _context.SaveChangesAsync();
+
+                if (request.Status == RequestStatus.Approved)
+                {
+                    await _notifications.NotifyFinalDecisionAsync(request, completedStage);
+                }
+                else
+                {
+                    await _notifications.NotifyAdvancedAsync(request, completedStage);
+                }
 
                 TempData["SuccessMessage"] =
                     "Request approved successfully.";
@@ -129,20 +161,23 @@ namespace ITCompliance.API.Controllers
                     return RedirectToAction(nameof(Dashboard));
                 }
 
-                if (request.Status != RequestStatus.ItOfficerApproved)
+                if (!IsValidHodStage(request) || !IsInMyScope(request))
                 {
                     TempData["ErrorMessage"] =
-                        "This request is not available for HOD processing.";
+                        "This request is not available for your approval.";
                     return RedirectToAction(nameof(Dashboard));
                 }
 
-                request.Status = RequestStatus.RejectedByHod;
-                request.HODRemarks = string.IsNullOrWhiteSpace(remarks)
-                    ? "Rejected by HOD"
-                    : remarks.Trim();
+                var rejectedAtStage = request.Status;
+
+                RecordTransaction(request, rejectedAtStage, TransactionAction.Reject, remarks);
+
+                request.Status = RequestStatus.Rejected;
                 request.UpdatedAt = DateTime.Now;
 
                 await _context.SaveChangesAsync();
+
+                await _notifications.NotifyFinalDecisionAsync(request, rejectedAtStage);
 
                 TempData["SuccessMessage"] =
                     "Request rejected successfully.";
@@ -154,6 +189,43 @@ namespace ITCompliance.API.Controllers
                     "HOD rejection failed. Please try again.";
                 return RedirectToAction(nameof(Dashboard));
             }
+        }
+
+        private static bool IsValidHodStage(InternetAccessRequest request) =>
+            request.Status == RequestStatus.AwaitingOwnHod ||
+            request.Status == RequestStatus.AwaitingItHod;
+
+        private bool IsInMyScope(InternetAccessRequest request)
+        {
+            var deptCodes = User.GetDepartmentScopes(RoleNames.HOD);
+
+            return deptCodes.Count == 0 ||
+                deptCodes.Contains(request.PendingDepartmentCode);
+        }
+
+        private void RecordTransaction(
+            InternetAccessRequest request,
+            string stageStatus,
+            string action,
+            string? remarks)
+        {
+            var actorEmpId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+
+            _context.RequestTransactions.Add(new RequestTransaction
+            {
+                RequestId = request.Id,
+                StageStatus = stageStatus,
+                ActorEmpId = actorEmpId,
+                ActorRole = RoleNames.HOD,
+                Action = action,
+                Remarks = string.IsNullOrWhiteSpace(remarks) ? null : remarks.Trim()
+            });
+
+            // Legacy column, kept for continuity/visibility on the
+            // request itself - RequestTransaction is the source of truth.
+            request.HODRemarks = string.IsNullOrWhiteSpace(remarks)
+                ? $"{action}d by HOD"
+                : remarks.Trim();
         }
     }
 }

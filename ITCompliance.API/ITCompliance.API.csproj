@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="MailKit" Version="4.17.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
 
     <!-- Pinned above 2.0.0 to fix vulnerability GHSA-v5pm-xwqc-g5wc

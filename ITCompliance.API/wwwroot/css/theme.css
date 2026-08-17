@@ -348,41 +348,31 @@ h1, h2, h3 {
     background: currentColor;
 }
 
-.badge-pending {
+.badge-awaiting-department-hod {
     background: var(--warn-soft);
     color: var(--warn);
     border-color: #fde68a;
 }
 
-.badge-it-officer-approved {
+.badge-awaiting-it-officer-and-security-head {
     background: var(--info-soft);
     color: var(--info);
     border-color: #bfdbfe;
 }
 
-.badge-hod-approved {
+.badge-awaiting-it-hod {
     background: var(--teal-soft);
     color: var(--teal);
     border-color: #99f6e4;
 }
 
-.badge-security-head-approved {
-    background: var(--cyan-soft);
-    color: var(--cyan);
-    border-color: #a5f3fc;
-}
-
-.badge-boss-approved,
 .badge-approved {
     background: var(--ok-soft);
     color: var(--ok);
     border-color: #bbf7d0;
 }
 
-.badge-rejected,
-.badge-rejected-by-hod,
-.badge-rejected-by-security-head,
-.badge-rejected-by-boss {
+.badge-rejected {
     background: var(--danger-soft);
     color: var(--danger);
     border-color: #fecaca;

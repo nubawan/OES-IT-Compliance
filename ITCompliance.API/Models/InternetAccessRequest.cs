@@ -44,4 +44,11 @@ public partial class InternetAccessRequest
     public string EmployeeEmail { get; set; }
 
     public string DepartmentCode { get; set; }
+
+    // Which department's HOD queue this currently belongs to. Set at
+    // submit time (requester's own dept) and again when the request
+    // reaches the final IT-HOD stage (set to Workflow:ItDepartmentCode).
+    // Null while awaiting IT Officer/Security Head, since that stage
+    // isn't department-scoped.
+    public string PendingDepartmentCode { get; set; }
 }

@@ -9,12 +9,13 @@ namespace ITCompliance.API.Models
         public const string ITOfficer = "ITOfficer";
         public const string HOD = "HOD";
         public const string SecurityHead = "SecurityHead";
-        public const string Boss = "Boss";
         public const string Admin = "Admin";
 
+        // Boss retired - the final approver is now whoever holds HOD
+        // scoped to the IT department (Workflow:ItDepartmentCode).
         public static readonly string[] AssignableRoles =
         {
-            ITOfficer, HOD, SecurityHead, Boss, Admin
+            ITOfficer, HOD, SecurityHead, Admin
         };
     }
 }

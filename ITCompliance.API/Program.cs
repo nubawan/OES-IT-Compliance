@@ -52,6 +52,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddSingleton<ActiveDirectoryService>();
 
+builder.Services.Configure<EmailOptions>(
+    builder.Configuration.GetSection("Email"));
+
+// Scoped (not Singleton like ActiveDirectoryService) - both touch
+// the scoped AppDbContext.
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IWorkflowNotificationService, WorkflowNotificationService>();
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();

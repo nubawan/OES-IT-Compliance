@@ -25,6 +25,11 @@ namespace ITCompliance.API.Data
         // App-owned role grants
         public DbSet<RoleAssignment> RoleAssignments { get; set; }
 
+        // Workflow audit trail and email delivery log
+        public DbSet<RequestTransaction> RequestTransactions { get; set; }
+
+        public DbSet<EmailLog> EmailLogs { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -53,6 +58,37 @@ namespace ITCompliance.API.Data
                 entity.Property(r => r.DepartmentCode)
                     .HasMaxLength(30)
                     .HasDefaultValue("");
+
+                entity.Property(r => r.PendingDepartmentCode)
+                    .HasMaxLength(30);
+            });
+
+            modelBuilder.Entity<RequestTransaction>(entity =>
+            {
+                entity.Property(t => t.ActorEmpId).HasMaxLength(25);
+                entity.Property(t => t.ActorRole).HasMaxLength(30);
+                entity.Property(t => t.Action).HasMaxLength(20);
+                entity.Property(t => t.StageStatus).HasMaxLength(60);
+
+                entity.HasIndex(t => t.RequestId);
+
+                entity.HasOne(t => t.Request)
+                    .WithMany()
+                    .HasForeignKey(t => t.RequestId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<EmailLog>(entity =>
+            {
+                entity.Property(e => e.RecipientEmail).HasMaxLength(320);
+                entity.Property(e => e.Purpose).HasMaxLength(60);
+
+                entity.HasIndex(e => e.RequestId);
+
+                entity.HasOne(e => e.Request)
+                    .WithMany()
+                    .HasForeignKey(e => e.RequestId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
         }
     }

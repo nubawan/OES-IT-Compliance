@@ -9,9 +9,8 @@
 
     var kpis = new List<Kpi>
     {
-        new("Pending", Model.Count(r => r.Status == RequestStatus.Pending), "warn"),
         new("In progress", Model.Count(r => RequestStatus.IsInProgress(r.Status)), "info"),
-        new("Approved", Model.Count(r => r.Status == RequestStatus.BossApproved), "ok"),
+        new("Approved", Model.Count(r => r.Status == RequestStatus.Approved), "ok"),
         new("Rejected", Model.Count(r => RequestStatus.IsRejected(r.Status)), "danger")
     };
 }
@@ -110,7 +109,8 @@
         <h2>Need Internet Access?</h2>
         <p>
             Submit a request for approval. It will be reviewed by
-            the IT Officer, your HOD, the Security Head and Boss.
+            your department's HOD, then IT Officer or Security Head,
+            with IT's HOD giving final approval.
         </p>
     </div>
 

@@ -1,6 +1,6 @@
 # PROJECT STATUS - IT Compliance Portal
 
-Last updated: 2026-08-14
+Last updated: 2026-08-18
 
 This file tracks what has been **implemented** and what has been
 **skipped / pending** during the audit and improvement work.
@@ -9,6 +9,57 @@ Use it as the checklist for the next sessions.
 ---
 
 ## 1. IMPLEMENTED
+
+### Department-conditional workflow, audit trail, email notifications (done)
+
+- **"Boss" role retired.** The universal final approver for every
+  request is now whoever holds `HOD` scoped to the IT department
+  (`Workflow:ItDepartmentCode`, `"93"`) - reuses the existing
+  department-scoped `RoleAssignment` mechanism, no new role/controller.
+  `Controllers/BossController.cs` and `Views/Boss/` deleted.
+- **Two conditional routes**, see `Services/WorkflowRouter.cs` /
+  `Models/RequestStatus.cs`:
+  - Requester in dept 93: `AwaitingItOfficerOrSecurityHead` ->
+    `AwaitingItHod` -> `Approved`.
+  - Requester elsewhere: `AwaitingOwnHod` ->
+    `AwaitingItOfficerOrSecurityHead` -> `AwaitingItHod` -> `Approved`.
+  - IT Officer/Security Head share one stage - **either** approving
+    advances it (OR gate, "whoever responds first"), not both.
+  - Reject at any stage ends the request immediately.
+- **New audit trail**: `Models/RequestTransaction.cs` - one row per
+  approve/reject action (actor, role, stage, remarks, timestamp).
+  Legacy per-stage remarks columns on `InternetAccessRequest` are kept
+  for historical data but no longer written to by new code.
+- **`InternetAccessRequest.PendingDepartmentCode`** - which
+  department's HOD queue a request currently belongs to.
+  `HODController` serves both "own department's HOD" and "IT's final
+  HOD" with the same controller/scoping logic, just matching a
+  different department at different times.
+- **Email notifications** (`Services/IWorkflowNotificationService.cs`,
+  MailKit-based `SmtpEmailSender`): submitted / advanced / final
+  decision, resolved via `RoleAssignment` the same way login claims
+  are resolved. IT's HOD's final decision also sends an intimation
+  email to all IT Officer/Security Head holders regardless of outcome.
+  SMTP: `smtp.office365.com:587`, from `auto.desk@orient-power.com`
+  (password via user-secrets/`Email__Password` env var, never
+  committed). `Email:DevMode` (on by default in
+  `appsettings.Development.json`) redirects every outgoing email to
+  a single test address instead of real recipients.
+- **New `Models/EmailLog.cs`** - delivery auditing (separate from
+  `RequestTransaction`), one row per attempted send.
+- **Manual rollout step**: whoever currently holds `Boss` needs to be
+  re-granted as `HOD` scoped to dept `93` via `/Admin/Roles/Create`,
+  then their old `Boss` grant revoked via `/Admin/Roles`.
+- **Migration applied by hand** (`AddWorkflowRedesignSimple.sql` at
+  the project root) rather than `dotnet ef database update`, after
+  the previous migration's `dotnet ef migrations add` run got
+  complicated - see git history. The matching EF migration files
+  were hand-written to keep `dotnet ef` tooling in sync; verified via
+  `dotnet ef migrations script` producing identical SQL.
+- **Known gap, not addressed here**: existing in-flight requests
+  under the old linear statuses don't map onto the new stage shapes -
+  resolve/clear any test data using old statuses before relying on
+  the new workflow for anything real.
 
 ### Build & Folder Organization (done)
 

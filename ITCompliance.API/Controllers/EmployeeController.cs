@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using ITCompliance.API.Data;
 using ITCompliance.API.Models;
+using ITCompliance.API.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +13,17 @@ namespace ITCompliance.API.Controllers
     public class EmployeeController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IWorkflowNotificationService _notifications;
+        private readonly IConfiguration _configuration;
 
-        public EmployeeController(AppDbContext context)
+        public EmployeeController(
+            AppDbContext context,
+            IWorkflowNotificationService notifications,
+            IConfiguration configuration)
         {
             _context = context;
+            _notifications = notifications;
+            _configuration = configuration;
         }
 
         [HttpGet]
@@ -111,29 +119,41 @@ namespace ITCompliance.API.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            _context.InternetAccessRequests.Add(
-                new InternetAccessRequest
-                {
-                    EmployeeId = employeeId,
-                    EmployeeEmail =
-                        User.FindFirstValue(ClaimTypes.Email) ?? "",
-                    DepartmentCode = employee.DepartmentCode ?? "",
+            var itDepartmentCode =
+                _configuration["Workflow:ItDepartmentCode"] ?? "93";
 
-                    DeviceName = deviceName?.Trim() ?? "",
-                    LanMacId = lanMacId?.Trim() ?? "",
-                    CellularId = cellularId?.Trim() ?? "",
-                    LanLaptopId = lanLaptopId?.Trim() ?? "",
-                    IpAddress = ipAddress?.Trim() ?? "",
+            var (initialStatus, pendingDepartmentCode) =
+                WorkflowRouter.GetInitialStage(
+                    employee.DepartmentCode ?? "",
+                    itDepartmentCode);
 
-                    Website = website!.Trim(),
-                    Reason = reason!.Trim(),
-                    Duration = duration!.Trim(),
+            var request = new InternetAccessRequest
+            {
+                EmployeeId = employeeId,
+                EmployeeEmail =
+                    User.FindFirstValue(ClaimTypes.Email) ?? "",
+                DepartmentCode = employee.DepartmentCode ?? "",
+                PendingDepartmentCode = pendingDepartmentCode ?? "",
 
-                    Status = "Pending",
-                    CreatedAt = DateTime.Now
-                });
+                DeviceName = deviceName?.Trim() ?? "",
+                LanMacId = lanMacId?.Trim() ?? "",
+                CellularId = cellularId?.Trim() ?? "",
+                LanLaptopId = lanLaptopId?.Trim() ?? "",
+                IpAddress = ipAddress?.Trim() ?? "",
+
+                Website = website!.Trim(),
+                Reason = reason!.Trim(),
+                Duration = duration!.Trim(),
+
+                Status = initialStatus,
+                CreatedAt = DateTime.Now
+            };
+
+            _context.InternetAccessRequests.Add(request);
 
             await _context.SaveChangesAsync();
+
+            await _notifications.NotifySubmittedAsync(request);
 
             TempData["SuccessMessage"] =
                 "Your internet access request has been " +

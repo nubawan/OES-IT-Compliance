@@ -1,26 +1,42 @@
+using System.Security.Claims;
 using ITCompliance.API.Data;
 using ITCompliance.API.Models;
+using ITCompliance.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace ITCompliance.API.Controllers
 {
+    // Shares the AwaitingItOfficerOrSecurityHead stage with
+    // ITOfficerController - whichever of the two approves first
+    // advances the request (OR gate); the other simply won't find it
+    // in their queue anymore. See Services/WorkflowRouter.cs.
     [Authorize(Roles = RoleNames.SecurityHead)]
     public class SecurityHeadController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IWorkflowNotificationService _notifications;
+        private readonly IConfiguration _configuration;
 
-        public SecurityHeadController(AppDbContext context)
+        public SecurityHeadController(
+            AppDbContext context,
+            IWorkflowNotificationService notifications,
+            IConfiguration configuration)
         {
             _context = context;
+            _notifications = notifications;
+            _configuration = configuration;
         }
+
+        private string ItDepartmentCode =>
+            _configuration["Workflow:ItDepartmentCode"] ?? "93";
 
         [HttpGet]
         public async Task<IActionResult> Dashboard()
         {
             var requests = await _context.InternetAccessRequests
-                .Where(r => r.Status == RequestStatus.HodApproved)
+                .Where(r => r.Status == RequestStatus.AwaitingItOfficerOrSecurityHead)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync();
 
@@ -31,25 +47,23 @@ namespace ITCompliance.API.Controllers
 
         private async Task<List<Kpi>> GetKpisAsync()
         {
-            var counts = await _context.InternetAccessRequests
-                .GroupBy(r => r.Status)
+            var awaitingCount = await _context.InternetAccessRequests
+                .CountAsync(r => r.Status == RequestStatus.AwaitingItOfficerOrSecurityHead);
+
+            var actedCounts = await _context.RequestTransactions
+                .Where(t => t.ActorRole == RoleNames.SecurityHead)
+                .GroupBy(t => t.Action)
                 .Select(g => new { g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.Key, x => x.Count);
 
-            int Count(string status) =>
-                counts.TryGetValue(status, out var c) ? c : 0;
+            int Count(string action) =>
+                actedCounts.TryGetValue(action, out var c) ? c : 0;
 
             return new List<Kpi>
             {
-                new("Awaiting my approval",
-                    Count(RequestStatus.HodApproved), "info"),
-
-                new("Approved by me",
-                    Count(RequestStatus.SecurityHeadApproved) +
-                    Count(RequestStatus.BossApproved), "ok"),
-
-                new("Rejected by me",
-                    Count(RequestStatus.RejectedBySecurityHead), "danger")
+                new("Awaiting my approval", awaitingCount, "info"),
+                new("Approved by me", Count(TransactionAction.Approve), "ok"),
+                new("Rejected by me", Count(TransactionAction.Reject), "danger")
             };
         }
 
@@ -68,20 +82,26 @@ namespace ITCompliance.API.Controllers
                     return RedirectToAction(nameof(Dashboard));
                 }
 
-                if (request.Status != RequestStatus.HodApproved)
+                if (request.Status != RequestStatus.AwaitingItOfficerOrSecurityHead)
                 {
-                    TempData["ErrorMessage"] =
-                        "This request is not available for Security Head approval.";
+                    TempData["ErrorMessage"] = "This request has already been processed.";
                     return RedirectToAction(nameof(Dashboard));
                 }
 
-                request.Status = RequestStatus.SecurityHeadApproved;
-                request.SecurityHeadRemarks = string.IsNullOrWhiteSpace(remarks)
-                    ? "Approved by Security Head"
-                    : remarks.Trim();
+                var completedStage = request.Status;
+
+                RecordTransaction(request, completedStage, TransactionAction.Approve, remarks);
+
+                var (nextStatus, nextPendingDept) =
+                    WorkflowRouter.GetNextStage(request.Status, ItDepartmentCode);
+
+                request.Status = nextStatus;
+                request.PendingDepartmentCode = nextPendingDept ?? "";
                 request.UpdatedAt = DateTime.Now;
 
                 await _context.SaveChangesAsync();
+
+                await _notifications.NotifyAdvancedAsync(request, completedStage);
 
                 TempData["SuccessMessage"] =
                     "Request approved successfully by Security Head.";
@@ -110,20 +130,22 @@ namespace ITCompliance.API.Controllers
                     return RedirectToAction(nameof(Dashboard));
                 }
 
-                if (request.Status != RequestStatus.HodApproved)
+                if (request.Status != RequestStatus.AwaitingItOfficerOrSecurityHead)
                 {
-                    TempData["ErrorMessage"] =
-                        "This request is not available for Security Head processing.";
+                    TempData["ErrorMessage"] = "This request has already been processed.";
                     return RedirectToAction(nameof(Dashboard));
                 }
 
-                request.Status = RequestStatus.RejectedBySecurityHead;
-                request.SecurityHeadRemarks = string.IsNullOrWhiteSpace(remarks)
-                    ? "Rejected by Security Head"
-                    : remarks.Trim();
+                var rejectedAtStage = request.Status;
+
+                RecordTransaction(request, rejectedAtStage, TransactionAction.Reject, remarks);
+
+                request.Status = RequestStatus.Rejected;
                 request.UpdatedAt = DateTime.Now;
 
                 await _context.SaveChangesAsync();
+
+                await _notifications.NotifyFinalDecisionAsync(request, rejectedAtStage);
 
                 TempData["SuccessMessage"] =
                     "Request rejected successfully by Security Head.";
@@ -135,6 +157,29 @@ namespace ITCompliance.API.Controllers
                     "Rejection failed. Please try again.";
                 return RedirectToAction(nameof(Dashboard));
             }
+        }
+
+        private void RecordTransaction(
+            InternetAccessRequest request,
+            string stageStatus,
+            string action,
+            string? remarks)
+        {
+            var actorEmpId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "";
+
+            _context.RequestTransactions.Add(new RequestTransaction
+            {
+                RequestId = request.Id,
+                StageStatus = stageStatus,
+                ActorEmpId = actorEmpId,
+                ActorRole = RoleNames.SecurityHead,
+                Action = action,
+                Remarks = string.IsNullOrWhiteSpace(remarks) ? null : remarks.Trim()
+            });
+
+            request.SecurityHeadRemarks = string.IsNullOrWhiteSpace(remarks)
+                ? $"{action}d by Security Head"
+                : remarks.Trim();
         }
     }
 }

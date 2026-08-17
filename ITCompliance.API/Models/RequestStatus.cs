@@ -1,27 +1,32 @@
 namespace ITCompliance.API.Models
 {
-    // Workflow: Pending -> IT Officer -> HOD -> Security Head -> Boss.
-    // Any stage can reject; rejection ends the request.
+    // Workflow (department-conditional, see Services/WorkflowRouter.cs):
+    //   Requester in the IT department (Workflow:ItDepartmentCode):
+    //     AwaitingItOfficerOrSecurityHead -> AwaitingItHod -> Approved
+    //   Requester in any other department:
+    //     AwaitingOwnHod -> AwaitingItOfficerOrSecurityHead -> AwaitingItHod -> Approved
+    // Any stage can reject; rejection ends the request immediately.
+    // Who acted at each stage (and any remarks) is recorded in
+    // RequestTransaction, not in per-stage columns on the request itself.
     public static class RequestStatus
     {
-        public const string Pending = "Pending";
+        public const string AwaitingOwnHod = "Awaiting Department HOD";
 
-        public const string ItOfficerApproved = "IT Officer Approved";
-        public const string HodApproved = "HOD Approved";
-        public const string SecurityHeadApproved = "Security Head Approved";
-        public const string BossApproved = "Boss Approved";
+        // Label says "and" since both roles are notified/involved, but
+        // the rule is OR: either one approving advances the request.
+        public const string AwaitingItOfficerOrSecurityHead = "Awaiting IT Officer and Security Head";
 
+        public const string AwaitingItHod = "Awaiting IT HOD";
+
+        public const string Approved = "Approved";
         public const string Rejected = "Rejected";
-        public const string RejectedByHod = "Rejected by HOD";
-        public const string RejectedBySecurityHead = "Rejected by Security Head";
-        public const string RejectedByBoss = "Rejected by Boss";
 
         public static bool IsRejected(string? status) =>
-            status != null && status.StartsWith("Rejected");
+            status == Rejected;
 
         public static bool IsInProgress(string? status) =>
-            status is ItOfficerApproved or HodApproved
-                or SecurityHeadApproved;
+            status is AwaitingOwnHod or AwaitingItOfficerOrSecurityHead
+                or AwaitingItHod;
     }
 
     public record Kpi(string Label, int Count, string Tone);

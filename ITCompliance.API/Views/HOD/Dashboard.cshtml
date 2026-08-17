@@ -3,7 +3,7 @@
 
 @{
     ViewData["Title"] = "HOD Dashboard";
-    ViewData["PageSubtitle"] = "Second stage - review requests approved by the IT Officer";
+    ViewData["PageSubtitle"] = "Department approvals, and final approval for requests reaching IT's HOD";
 }
 
 <div class="kpi-row">
@@ -20,8 +20,8 @@
         <div>
             <h2>Awaiting HOD Approval</h2>
             <div class="card-head-desc">
-                Requests approved by the IT Officer that need your
-                departmental approval before moving to the Security Head.
+                Requests from your department awaiting your approval,
+                plus any requests reaching IT's final HOD sign-off.
             </div>
         </div>
 
@@ -70,6 +70,13 @@
                                 {
                                     <span class="meta-chip">@request.EmployeeEmail</span>
                                 }
+
+                                <span class="meta-chip">
+                                    Reviewing as:
+                                    @(request.Status == RequestStatus.AwaitingItHod
+                                        ? "IT HOD (final)"
+                                        : "Department HOD")
+                                </span>
                             </div>
                         </div>
 
@@ -116,16 +123,28 @@
 
                     </div>
 
-                    <div class="remarks-chain">
+                    @if (request.Status == RequestStatus.AwaitingItHod)
+                    {
+                        <div class="remarks-chain">
 
-                        <div class="remarks-item remarks-item--it-officer">
-                            <strong>IT Officer Remarks</strong>
-                            @(string.IsNullOrWhiteSpace(request.ITOfficerRemarks)
-                                ? "No remarks provided."
-                                : request.ITOfficerRemarks)
+                            @if (!string.IsNullOrWhiteSpace(request.ITOfficerRemarks))
+                            {
+                                <div class="remarks-item remarks-item--it-officer">
+                                    <strong>IT Officer Remarks</strong>
+                                    @request.ITOfficerRemarks
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(request.SecurityHeadRemarks))
+                            {
+                                <div class="remarks-item remarks-item--security-head">
+                                    <strong>Security Head Remarks</strong>
+                                    @request.SecurityHeadRemarks
+                                </div>
+                            }
+
                         </div>
-
-                    </div>
+                    }
 
                     <div class="action-bar">
 

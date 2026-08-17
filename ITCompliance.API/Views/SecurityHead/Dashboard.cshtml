@@ -3,7 +3,7 @@
 
 @{
     ViewData["Title"] = "Security Head Dashboard";
-    ViewData["PageSubtitle"] = "Third stage - review requests approved by the HOD";
+    ViewData["PageSubtitle"] = "Review internet access requests - shared with IT Officer, either approval moves it forward";
 }
 
 <div class="kpi-row">
@@ -20,8 +20,8 @@
         <div>
             <h2>Awaiting Security Head Approval</h2>
             <div class="card-head-desc">
-                Requests approved by the HOD that need your security
-                review before final approval by the Boss.
+                Also visible to IT Officer - whichever of you approves
+                first moves the request on to IT's HOD.
             </div>
         </div>
 
@@ -116,23 +116,17 @@
 
                     </div>
 
-                    <div class="remarks-chain">
+                    @if (!string.IsNullOrWhiteSpace(request.HODRemarks))
+                    {
+                        <div class="remarks-chain">
 
-                        <div class="remarks-item remarks-item--it-officer">
-                            <strong>IT Officer Remarks</strong>
-                            @(string.IsNullOrWhiteSpace(request.ITOfficerRemarks)
-                                ? "No remarks provided."
-                                : request.ITOfficerRemarks)
+                            <div class="remarks-item remarks-item--hod">
+                                <strong>Department HOD Remarks</strong>
+                                @request.HODRemarks
+                            </div>
+
                         </div>
-
-                        <div class="remarks-item remarks-item--hod">
-                            <strong>HOD Remarks</strong>
-                            @(string.IsNullOrWhiteSpace(request.HODRemarks)
-                                ? "No remarks provided."
-                                : request.HODRemarks)
-                        </div>
-
-                    </div>
+                    }
 
                     <div class="action-bar">
 

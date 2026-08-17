@@ -3,7 +3,7 @@
 
 @{
     ViewData["Title"] = "IT Officer Dashboard";
-    ViewData["PageSubtitle"] = "First stage - review employee internet access requests";
+    ViewData["PageSubtitle"] = "Review internet access requests - shared with Security Head, either approval moves it forward";
 }
 
 <div class="kpi-row">
@@ -20,8 +20,8 @@
         <div>
             <h2>Internet Access Requests</h2>
             <div class="card-head-desc">
-                Pending items await your first-stage approval
-                before they move to the HOD.
+                Also visible to Security Head - whichever of you
+                approves first moves the request on to IT's HOD.
             </div>
         </div>
 
@@ -116,7 +116,19 @@
 
                     </div>
 
-                    @if (request.Status == RequestStatus.Pending)
+                    @if (!string.IsNullOrWhiteSpace(request.HODRemarks))
+                    {
+                        <div class="remarks-chain">
+
+                            <div class="remarks-item remarks-item--hod">
+                                <strong>Department HOD Remarks</strong>
+                                @request.HODRemarks
+                            </div>
+
+                        </div>
+                    }
+
+                    @if (request.Status == RequestStatus.AwaitingItOfficerOrSecurityHead)
                     {
                         <div class="action-bar">
 
