@@ -1,3 +1,6 @@
+SET IMPLICIT_TRANSACTIONS OFF;
+GO
+
 -- Run this FIRST, once, before re-running AddRolesAndDepartmentScoping.sql.
 --
 -- Your database already has the schema from every migration up through
@@ -50,3 +53,9 @@ GO
 
 -- Sanity check - should return 7 rows.
 SELECT * FROM [__EFMigrationsHistory] ORDER BY [MigrationId];
+
+-- MUST be 0. If this is not 0, STOP - do not close this window or
+-- run anything else until you find out why and COMMIT/ROLLBACK it,
+-- or the next script will silently no-op inside an open transaction
+-- again like before.
+SELECT @@TRANCOUNT AS should_be_zero;
